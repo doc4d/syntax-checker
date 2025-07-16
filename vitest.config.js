@@ -16,7 +16,7 @@ export default defineConfig({
     
     // Coverage
     coverage: {
-      provider: 'v8',
+      provider: 'istanbul',
       reporter: ['text', 'json'],
       exclude: [
         'node_modules/',
