@@ -1,0 +1,44 @@
+{
+  "name": "@4d-docs/syntax-checker",
+  "version": "1.0.0",
+  "description": "4D documentation syntax checker and parser",
+  "main": "out/index.js",
+  "type": "module",
+  "bin": {
+    "syntax-checker": "./out/check.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:legacy": "node test.js",
+    "check": "npm run build && node out/check.js",
+    "check:ts": "node --loader ts-node/esm check.ts"
+  },
+  "keywords": [
+    "4d",
+    "documentation",
+    "syntax",
+    "parser",
+    "checker"
+  ],
+  "author": "4D Documentation Team",
+  "license": "MIT",
+  "dependencies": {
+    "@4dsas/doc_preprocessing": "^1.0.0"
+  },
+  "exports": {
+    ".": "./out/index.js",
+    "./parser": "./out/src/parser.js",
+    "./checker": "./out/src/checker.js"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.14",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
