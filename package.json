@@ -17,7 +17,8 @@
     "test:coverage": "vitest run --coverage",
     "test:legacy": "node test.js",
     "check": "npm run build && node out/check.js",
-    "check:ts": "node --loader ts-node/esm check.ts"
+    "check:ts": "node --loader ts-node/esm check.ts",
+    "prepack": "npm run build && chmod +x out/check.js"
   },
   "keywords": [
     "4d",
@@ -28,8 +29,13 @@
   ],
   "author": "4D Documentation Team",
   "license": "MIT",
+  "files": [
+    "out/",
+    "README.md",
+    "package.json"
+  ],
   "dependencies": {
-    "@4dsas/doc_preprocessing": "^1.0.0"
+    "@4dsas/doc_preprocessing": "^1.2.0"
   },
   "exports": {
     ".": "./out/index.js",
