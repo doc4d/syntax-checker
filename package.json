@@ -18,7 +18,7 @@
     "test:legacy": "node test.js",
     "check": "npm run build && node out/check.js",
     "check:ts": "node --loader ts-node/esm check.ts",
-    "prepack": "npm run build && chmod +x out/check.js"
+    "prepare": "npm run build && (chmod +x out/check.js || true)"
   },
   "keywords": [
     "4d",
