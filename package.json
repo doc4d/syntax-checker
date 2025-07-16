@@ -1,6 +1,6 @@
 {
   "name": "@4d-docs/syntax-checker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "4D documentation syntax checker and parser",
   "main": "out/index.js",
   "type": "module",

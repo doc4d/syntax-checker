@@ -16,16 +16,16 @@ describe('SyntaxChecker Class', () => {
     });
 
     it('should validate forward-slash separated types', () => {
-      expect(checker.isTypeValid("Text/Blob", "Text")).toBe(true);
-      expect(checker.isTypeValid("Text/Blob", "Blob")).toBe(true);
-      expect(checker.isTypeValid("Text/Blob", "Object")).toBe(false);
-      expect(checker.isTypeValid("Text/Blob/Object", "Object")).toBe(true);
+      expect(checker.isTypeValid("Text", "Text/Blob")).toBe(true);
+      expect(checker.isTypeValid("Blob", "Text/Blob")).toBe(true);
+      expect(checker.isTypeValid("Object", "Text/Blob")).toBe(false);
+      expect(checker.isTypeValid("Object", "Text/Blob/Object")).toBe(true);
     });
 
     it('should validate comma-separated types', () => {
-      expect(checker.isTypeValid("Text, Number, Object", "Text")).toBe(true);
-      expect(checker.isTypeValid("Text, Number, Object", "Number")).toBe(true);
-      expect(checker.isTypeValid("Text, Number, Object", "Boolean")).toBe(false);
+      expect(checker.isTypeValid("Text", "Text, Number, Object")).toBe(true);
+      expect(checker.isTypeValid("Number", "Text, Number, Object")).toBe(true);
+      expect(checker.isTypeValid("Boolean", "Text, Number, Object")).toBe(false);
     });
 
     it('should handle type equivalences', () => {
@@ -79,10 +79,10 @@ describe('SyntaxChecker Class', () => {
     });
 
     it('should handle comma-separated type validation', () => {
-      expect(checker.isTypeValid("Text, Number, Array", "Text")).toBe(true);
-      expect(checker.isTypeValid("Text, Number, Array", "Number")).toBe(true);
-      expect(checker.isTypeValid("Text, Number, Array", "Array")).toBe(true);
-      expect(checker.isTypeValid("Text, Number, Array", "Boolean")).toBe(false);
+      expect(checker.isTypeValid("Text", "Text, Number, Array")).toBe(true);
+      expect(checker.isTypeValid("Number", "Text, Number, Array")).toBe(true);
+      expect(checker.isTypeValid("Array", "Text, Number, Array")).toBe(true);
+      expect(checker.isTypeValid("Boolean", "Text, Number, Array")).toBe(false);
     });
 
     it('should handle complex type combinations efficiently', () => {
@@ -93,9 +93,9 @@ describe('SyntaxChecker Class', () => {
       ];
       
       complexTypes.forEach(type => {
-        expect(checker.isTypeValid(type, "Text")).toBe(true);
-        expect(checker.isTypeValid(type, "Number")).toBe(true);
-        expect(checker.isTypeValid(type, "NonExistent")).toBe(false);
+        expect(checker.isTypeValid("Text", type)).toBe(true);
+        expect(checker.isTypeValid("Number", type)).toBe(true);
+        expect(checker.isTypeValid("NonExistent", type)).toBe(false);
       });
     });
 
@@ -181,7 +181,7 @@ describe('SyntaxChecker Class', () => {
       
       const output = logs.join('\n');
       expect(output).toContain('WebSocket.send');
-      expect(output).toContain('Type mismatches');
+      expect(output).not.toContain('Type mismatches'); // Should NOT have type mismatches after fix
     });
 
     it('should handle empty and null parameters', () => {

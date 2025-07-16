@@ -239,10 +239,9 @@ export class SyntaxChecker {
      * @returns True if type is valid
      */
     isTypeValid(parsedType: string, actualType: string): boolean {
-        // Check if the actual type is valid according to the parsed type specification
-        // Handle cases like "Text/Blob/Object" or "Text, Number, Array" containing "Text"
-        const actualTypeLower = actualType.toLowerCase();
-        const parsedTypeLower = parsedType.toLowerCase();
+        // Check if the parsed type is valid according to the actual type specification
+        const actualTypeLower = actualType.toLowerCase().trim();
+        const parsedTypeLower = parsedType.toLowerCase().trim();
         
         // If parsed type is 'any', accept any actual type
         if (parsedTypeLower === 'any') {
@@ -260,21 +259,24 @@ export class SyntaxChecker {
             'number': 'real'
         };
         
-        if (typeEquivalences[actualTypeLower] === parsedTypeLower) {
+        if (typeEquivalences[parsedTypeLower] === actualTypeLower) {
             return true;
         }
         
-        // Split parsed type by commas or forward slashes and check if actual type is in the list
-        const parsedTypeList = parsedTypeLower.split(/[,\/]/).map(t => t.trim());
+        // Split actual type by commas, forward slashes, or "or" and check if parsed type is in the list
+        const actualTypeList = actualTypeLower
+            .split(/[,\/]|\s+or\s+/)
+            .map(t => t.trim())
+            .filter(t => t.length > 0);
         
-        // Check if actual type is in the parsed type list
-        if (parsedTypeList.includes(actualTypeLower)) {
+        // Check if parsed type is in the actual type list
+        if (actualTypeList.includes(parsedTypeLower)) {
             return true;
         }
         
-        // Check type equivalences within the list
-        for (const parsedTypeItem of parsedTypeList) {
-            if (typeEquivalences[actualTypeLower] === parsedTypeItem) {
+        // Check type equivalences within the actual type list
+        for (const actualTypeItem of actualTypeList) {
+            if (typeEquivalences[parsedTypeLower] === actualTypeItem) {
                 return true;
             }
         }

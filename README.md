@@ -1,5 +1,7 @@
 # @4d-docs/syntax-checker
 
+[![CI](https://github.com/doc4d/syntax-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/doc4d/syntax-checker/actions/workflows/ci.yml)
+
 A comprehensive syntax parser and checker for 4D documentation, written in TypeScript.
 
 ## Features
