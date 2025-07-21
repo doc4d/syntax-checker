@@ -267,14 +267,14 @@ describe('Parser Class', () => {
       expect(result[0].parameters[2].optional).toBe(true);
     });
 
-    it('should preserve escaped asterisks', () => {
+    it('should treat escaped asterisks as operators', () => {
       const syntax = "**test** ( \\* ; *param* : Text )";
       const result = parser.parseSyntax(syntax);
       
       expect(result).toHaveLength(1);
       expect(result[0].parameters).toHaveLength(2);
       expect(result[0].parameters[0].name).toBe('*');
-      expect(result[0].parameters[0].type).toBe('marker');
+      expect(result[0].parameters[0].type).toBe('operator');
       expect(result[0].parameters[1].name).toBe('param');
       expect(result[0].parameters[1].type).toBe('Text');
     });
@@ -323,14 +323,15 @@ describe('Parser Class', () => {
       expect(result[0].parameters[2].type).toBe('Text');
     });
 
-    it('should differentiate between operator and marker asterisks', () => {
+    it('should handle both escaped and standalone asterisks', () => {
       const syntax = "**test** ( \\* ; * ; *param* : Text )";
       const result = parser.parseSyntax(syntax);
       
       expect(result).toHaveLength(1);
       expect(result[0].parameters).toHaveLength(3);
+      // Both \* and * should be treated as operators now
       expect(result[0].parameters[0].name).toBe('*');
-      expect(result[0].parameters[0].type).toBe('marker');
+      expect(result[0].parameters[0].type).toBe('operator');
       expect(result[0].parameters[1].name).toBe('*');
       expect(result[0].parameters[1].type).toBe('operator');
       expect(result[0].parameters[2].name).toBe('param');

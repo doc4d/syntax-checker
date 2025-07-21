@@ -1,6 +1,25 @@
 /**
- * Parameter interface for parsed syntax parameters
+ * State machine states for parameter parsing
  */
+const PARSER_STATES = {
+    NORMAL: 'normal',
+    IN_OPTIONAL: 'in_optional',
+    IN_PARAM_NAME: 'in_param_name',
+    IN_TYPE: 'in_type'
+} as const;
+
+type ParserStateType = typeof PARSER_STATES[keyof typeof PARSER_STATES];
+
+/**
+ * Parameter parser state interface
+ */
+interface ParameterParserState {
+    state: ParserStateType;
+    optionalDepth: number;
+    currentParam: ParsedParameter | null;
+    buffer: string;
+    parameters: ParsedParameter[];
+}
 export interface ParsedParameter {
     name: string;
     type: string;
@@ -110,9 +129,16 @@ export class Parser {
      * @returns Array of parsed parameters
      */
     parseParameters(paramString: string): ParsedParameter[] {
-        const parameters: ParsedParameter[] = [];
-        
-        // Preprocess: Remove markdown asterisks around parameter names
+        const cleanedParamString = this.preprocessParameterString(paramString);
+        return this.parseParametersWithStateMachine(cleanedParamString);
+    }
+
+    /**
+     * Preprocess parameter string to handle markdown asterisks
+     * @param paramString - The parameter string to preprocess
+     * @returns Cleaned parameter string
+     */
+    private preprocessParameterString(paramString: string): string {
         // Transform *paramName* to paramName, but keep \* as literal asterisk
         let cleanedParamString = paramString;
         
@@ -131,197 +157,260 @@ export class Parser {
         // Restore escaped asterisks
         cleanedParamString = cleanedParamString.replace(/___ESCAPED_ASTERISK___/g, '\\*');
         
-        // State machine states
-        const STATES = {
-            NORMAL: 'normal',
-            IN_OPTIONAL: 'in_optional',
-            IN_PARAM_NAME: 'in_param_name',
-            IN_TYPE: 'in_type'
-        } as const;
+        return cleanedParamString;
+    }
+
+    /**
+     * Parse parameters using state machine
+     * @param cleanedParamString - The preprocessed parameter string
+     * @returns Array of parsed parameters
+     */
+    private parseParametersWithStateMachine(cleanedParamString: string): ParsedParameter[] {
+        const parserState: ParameterParserState = {
+            state: PARSER_STATES.NORMAL,
+            optionalDepth: 0,
+            currentParam: null,
+            buffer: '',
+            parameters: []
+        };
         
-        type StateType = typeof STATES[keyof typeof STATES];
+        this.resetParam(parserState);
         
-        let state: StateType = STATES.NORMAL;
-        let optionalDepth = 0;
-        let currentParam: ParsedParameter | null = null;
-        let buffer = '';
         let i = 0;
-    
-        function resetParam(): void {
-            currentParam = {
-                name: '',
-                type: 'unknown',
-                optional: false,
-                spread: false
-            };
-        }
-    
-        function finishParam(): void {
-            if (currentParam && currentParam.name) {
-                // Clean up name and type
-                currentParam.name = currentParam.name.trim();
-                currentParam.type = currentParam.type.trim();
-                
-                // Set optional if we're in optional block
-                if (optionalDepth > 0) {
-                    currentParam.optional = true;
-                }
-                
-                // Handle spread parameters
-                if (currentParam.name.startsWith('...')) {
-                    currentParam.spread = true;
-                    currentParam.name = currentParam.name.slice(3);
-                }
-                
-                // Only add if name is valid
-                if (currentParam.name && currentParam.name !== '}' && currentParam.name !== '{' && currentParam.name !== ';') {
-                    parameters.push(currentParam);
-                }
-            }
-            resetParam();
-        }
-    
-        resetParam();
-    
         while (i < cleanedParamString.length) {
             const char = cleanedParamString[i];
             const nextChar = cleanedParamString[i + 1];
             
-            switch (state) {
-                case STATES.NORMAL:
-                    if (char === '\\' && nextChar === '*') {
-                        // Escaped asterisk - add as marker parameter
-                        parameters.push({
-                            name: '*',
-                            type: 'marker',
-                            optional: optionalDepth > 0,
-                            spread: false
-                        });
-                        i += 2; // Skip \*
-                        continue;
-                    } else if (char === '{') {
-                        optionalDepth++;
-                        state = STATES.IN_OPTIONAL;
-                    } else if (char === '*') {
-                        // Standalone * operator (since we preprocessed *param* patterns)
-                        parameters.push({
-                            name: '*',
-                            type: 'operator',
-                            optional: optionalDepth > 0,
-                            spread: false
-                        });
-                    } else if (char === ';') {
-                        finishParam();
-                    } else if (char !== ' ' && char !== '\t') {
-                        // Start collecting parameter name
-                        buffer = char;
-                        state = STATES.IN_PARAM_NAME;
-                    }
-                    break;
-                    
-                case STATES.IN_OPTIONAL:
-                    if (char === '\\' && nextChar === '*') {
-                        // Escaped asterisk in optional block
-                        parameters.push({
-                            name: '*',
-                            type: 'marker',
-                            optional: true,
-                            spread: false
-                        });
-                        i += 2; // Skip \*
-                        continue;
-                    } else if (char === '{') {
-                        optionalDepth++;
-                    } else if (char === '}') {
-                        optionalDepth--;
-                        if (optionalDepth === 0) {
-                            state = STATES.NORMAL;
-                        }
-                    } else if (char === '*') {
-                        // Standalone * operator in optional block
-                        parameters.push({
-                            name: '*',
-                            type: 'operator',
-                            optional: true,
-                            spread: false
-                        });
-                    } else if (char === ';') {
-                        finishParam();
-                    } else if (char !== ' ' && char !== '\t') {
-                        // Start collecting parameter name
-                        buffer = char;
-                        state = STATES.IN_PARAM_NAME;
-                    }
-                    break;
-                    
-                case STATES.IN_PARAM_NAME:
-                    if (char === ':') {
-                        // Direct transition to type
-                        currentParam!.name = buffer.trim();
-                        buffer = '';
-                        state = STATES.IN_TYPE;
-                    } else if (char === ';') {
-                        // End of parameter
-                        currentParam!.name = buffer.trim();
-                        buffer = '';
-                        finishParam();
-                        state = optionalDepth > 0 ? STATES.IN_OPTIONAL : STATES.NORMAL;
-                    } else if (char === '{') {
-                        // Optional block starts - finish current param first
-                        currentParam!.name = buffer.trim();
-                        buffer = '';
-                        finishParam();
-                        optionalDepth++;
-                        state = STATES.IN_OPTIONAL;
-                    } else if (char === '}') {
-                        // Optional block ends - finish current param first, then decrement depth
-                        currentParam!.name = buffer.trim();
-                        buffer = '';
-                        finishParam();
-                        optionalDepth--;
-                        state = optionalDepth > 0 ? STATES.IN_OPTIONAL : STATES.NORMAL;
-                    } else {
-                        buffer += char;
-                    }
-                    break;
-                    
-                case STATES.IN_TYPE:
-                    if (char === ';') {
-                        // End of type
-                        currentParam!.type = buffer.trim() || 'unknown';
-                        buffer = '';
-                        finishParam();
-                        state = optionalDepth > 0 ? STATES.IN_OPTIONAL : STATES.NORMAL;
-                    } else if (char === '{') {
-                        // Optional block starts - finish current param first
-                        currentParam!.type = buffer.trim() || 'unknown';
-                        buffer = '';
-                        finishParam();
-                        optionalDepth++;
-                        state = STATES.IN_OPTIONAL;
-                    } else if (char === '}') {
-                        // Optional block ends - finish current param first, then decrement depth
-                        currentParam!.type = buffer.trim() || 'unknown';
-                        buffer = '';
-                        finishParam();
-                        optionalDepth--;
-                        state = optionalDepth > 0 ? STATES.IN_OPTIONAL : STATES.NORMAL;
-                    } else {
-                        buffer += char;
-                    }
-                    break;
+            const result = this.processCharacter(parserState, char, nextChar);
+            if (result.skipNext) {
+                i += 2;
+            } else {
+                i++;
+            }
+        }
+        
+        // Handle any remaining parameter
+        if (parserState.state === PARSER_STATES.IN_TYPE) {
+            parserState.currentParam!.type = parserState.buffer.trim() || 'unknown';
+        }
+        this.finishParam(parserState);
+        
+        return parserState.parameters;
+    }
+
+    /**
+     * Reset current parameter in parser state
+     * @param parserState - Parser state object
+     */
+    private resetParam(parserState: ParameterParserState): void {
+        parserState.currentParam = {
+            name: '',
+            type: 'unknown',
+            optional: false,
+            spread: false
+        };
+    }
+
+    /**
+     * Finish current parameter and add to parameters array
+     * @param parserState - Parser state object
+     */
+    private finishParam(parserState: ParameterParserState): void {
+        if (parserState.currentParam && parserState.currentParam.name) {
+            // Clean up name and type
+            parserState.currentParam.name = parserState.currentParam.name.trim();
+            parserState.currentParam.type = parserState.currentParam.type.trim();
+            
+            // Set optional if we're in optional block
+            if (parserState.optionalDepth > 0) {
+                parserState.currentParam.optional = true;
             }
             
-            i++;
+            // Handle spread parameters
+            if (parserState.currentParam.name.startsWith('...')) {
+                parserState.currentParam.spread = true;
+                parserState.currentParam.name = parserState.currentParam.name.slice(3);
+            }
+            
+            // Only add if name is valid
+            if (parserState.currentParam.name && 
+                parserState.currentParam.name !== '}' && 
+                parserState.currentParam.name !== '{' && 
+                parserState.currentParam.name !== ';') {
+                parserState.parameters.push(parserState.currentParam);
+            }
         }
-    
-        // Handle any remaining parameter
-        if (state === STATES.IN_TYPE) {
-            currentParam!.type = buffer.trim() || 'unknown';
+        this.resetParam(parserState);
+    }
+
+    /**
+     * Process a character based on current state
+     * @param parserState - Parser state object
+     * @param char - Current character
+     * @param nextChar - Next character
+     * @returns Object indicating whether to skip the next character
+     */
+    private processCharacter(parserState: ParameterParserState, char: string, nextChar: string): { skipNext: boolean } {
+        switch (parserState.state) {
+            case PARSER_STATES.NORMAL:
+                return this.handleNormalState(parserState, char, nextChar);
+            case PARSER_STATES.IN_OPTIONAL:
+                return this.handleOptionalState(parserState, char, nextChar);
+            case PARSER_STATES.IN_PARAM_NAME:
+                return this.handleParameterNameState(parserState, char);
+            case PARSER_STATES.IN_TYPE:
+                return this.handleTypeState(parserState, char);
+            default:
+                return { skipNext: false };
         }
-        finishParam();
-    
-        return parameters;
+    }
+
+    /**
+     * Handle character processing in NORMAL state
+     * @param parserState - Parser state object
+     * @param char - Current character
+     * @param nextChar - Next character
+     * @returns Object indicating whether to skip the next character
+     */
+    private handleNormalState(parserState: ParameterParserState, char: string, nextChar: string): { skipNext: boolean } {
+        if (char === '\\' && nextChar === '*') {
+            // Escaped asterisk - treat as operator like standalone *
+            this.addSpecialParameter(parserState, '*', 'operator');
+            return { skipNext: true };
+        } else if (char === '{') {
+            parserState.optionalDepth++;
+            parserState.state = PARSER_STATES.IN_OPTIONAL;
+        } else if (char === '*') {
+            // Standalone * operator (since we preprocessed *param* patterns)
+            this.addSpecialParameter(parserState, '*', 'operator');
+        } else if (char === ';') {
+            this.finishParam(parserState);
+        } else if (char !== ' ' && char !== '\t') {
+            // Start collecting parameter name
+            parserState.buffer = char;
+            parserState.state = PARSER_STATES.IN_PARAM_NAME;
+        }
+        return { skipNext: false };
+    }
+
+    /**
+     * Handle character processing in IN_OPTIONAL state
+     * @param parserState - Parser state object
+     * @param char - Current character
+     * @param nextChar - Next character
+     * @returns Object indicating whether to skip the next character
+     */
+    private handleOptionalState(parserState: ParameterParserState, char: string, nextChar: string): { skipNext: boolean } {
+        if (char === '\\' && nextChar === '*') {
+            // Escaped asterisk in optional block - treat as operator like standalone *
+            this.addSpecialParameter(parserState, '*', 'operator', true);
+            return { skipNext: true };
+        } else if (char === '{') {
+            parserState.optionalDepth++;
+        } else if (char === '}') {
+            parserState.optionalDepth--;
+            if (parserState.optionalDepth === 0) {
+                parserState.state = PARSER_STATES.NORMAL;
+            }
+        } else if (char === '*') {
+            // Standalone * operator in optional block
+            this.addSpecialParameter(parserState, '*', 'operator', true);
+        } else if (char === ';') {
+            this.finishParam(parserState);
+        } else if (char !== ' ' && char !== '\t') {
+            // Start collecting parameter name
+            parserState.buffer = char;
+            parserState.state = PARSER_STATES.IN_PARAM_NAME;
+        }
+        return { skipNext: false };
+    }
+
+    /**
+     * Handle character processing in IN_PARAM_NAME state
+     * @param parserState - Parser state object
+     * @param char - Current character
+     * @returns Object indicating whether to skip the next character
+     */
+    private handleParameterNameState(parserState: ParameterParserState, char: string): { skipNext: boolean } {
+        if (char === ':') {
+            // Direct transition to type
+            parserState.currentParam!.name = parserState.buffer.trim();
+            parserState.buffer = '';
+            parserState.state = PARSER_STATES.IN_TYPE;
+        } else if (char === ';') {
+            // End of parameter
+            parserState.currentParam!.name = parserState.buffer.trim();
+            parserState.buffer = '';
+            this.finishParam(parserState);
+            parserState.state = parserState.optionalDepth > 0 ? PARSER_STATES.IN_OPTIONAL : PARSER_STATES.NORMAL;
+        } else if (char === '{') {
+            // Optional block starts - finish current param first
+            parserState.currentParam!.name = parserState.buffer.trim();
+            parserState.buffer = '';
+            this.finishParam(parserState);
+            parserState.optionalDepth++;
+            parserState.state = PARSER_STATES.IN_OPTIONAL;
+        } else if (char === '}') {
+            // Optional block ends - finish current param first, then decrement depth
+            parserState.currentParam!.name = parserState.buffer.trim();
+            parserState.buffer = '';
+            this.finishParam(parserState);
+            parserState.optionalDepth--;
+            parserState.state = parserState.optionalDepth > 0 ? PARSER_STATES.IN_OPTIONAL : PARSER_STATES.NORMAL;
+        } else {
+            parserState.buffer += char;
+        }
+        return { skipNext: false };
+    }
+
+    /**
+     * Handle character processing in IN_TYPE state
+     * @param parserState - Parser state object
+     * @param char - Current character
+     * @returns Object indicating whether to skip the next character
+     */
+    private handleTypeState(parserState: ParameterParserState, char: string): { skipNext: boolean } {
+        if (char === ';') {
+            // End of type
+            parserState.currentParam!.type = parserState.buffer.trim() || 'unknown';
+            parserState.buffer = '';
+            this.finishParam(parserState);
+            parserState.state = parserState.optionalDepth > 0 ? PARSER_STATES.IN_OPTIONAL : PARSER_STATES.NORMAL;
+        } else if (char === '{') {
+            // Optional block starts - finish current param first
+            parserState.currentParam!.type = parserState.buffer.trim() || 'unknown';
+            parserState.buffer = '';
+            this.finishParam(parserState);
+            parserState.optionalDepth++;
+            parserState.state = PARSER_STATES.IN_OPTIONAL;
+        } else if (char === '}') {
+            // Optional block ends - finish current param first, then decrement depth
+            parserState.currentParam!.type = parserState.buffer.trim() || 'unknown';
+            parserState.buffer = '';
+            this.finishParam(parserState);
+            parserState.optionalDepth--;
+            parserState.state = parserState.optionalDepth > 0 ? PARSER_STATES.IN_OPTIONAL : PARSER_STATES.NORMAL;
+        } else {
+            parserState.buffer += char;
+        }
+        return { skipNext: false };
+    }
+
+    /**
+     * Add a special parameter (like * operator or marker)
+     * @param parserState - Parser state object
+     * @param name - Parameter name
+     * @param type - Parameter type
+     * @param forceOptional - Force parameter to be optional
+     */
+    private addSpecialParameter(parserState: ParameterParserState, name: string, type: string, forceOptional: boolean = false): void {
+        const param: ParsedParameter = {
+            name: name,
+            type: type,
+            optional: forceOptional || parserState.optionalDepth > 0,
+            spread: false
+        };
+        parserState.parameters.push(param);
     }
 
     /**
