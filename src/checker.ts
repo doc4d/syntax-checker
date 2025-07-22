@@ -1,6 +1,9 @@
 import { Preprocessing } from "@4dsas/doc_preprocessing/lib/preprocessor.js";
 import { Settings, SETTINGS_KEY } from "@4dsas/doc_preprocessing/lib/settings.js";
-import { Parser, ParsedVariant } from "./parser.js";
+import { Parser, ParsedVariant, WarningLevel } from "./parser.js";
+
+// Re-export WarningLevel for convenience
+export { WarningLevel } from "./parser.js";
 
 /**
  * Parameter data structure from documentation
@@ -46,9 +49,11 @@ interface ValidationResult {
  */
 export class SyntaxChecker {
     private parser: Parser;
+    private warningLevel: WarningLevel;
 
-    constructor() {
+    constructor(warningLevel: WarningLevel = WarningLevel.LEVEL_1) {
         this.parser = new Parser();
+        this.warningLevel = warningLevel;
     }
 
     /**
@@ -285,15 +290,43 @@ export class SyntaxChecker {
     }
 
     /**
+     * Filter malformation issues based on warning level
+     * @param variant - Parsed variant object
+     * @returns True if variant has malformation issues at or above the current warning level
+     */
+    private hasRelevantMalformation(variant: ParsedVariant): boolean {
+        if (!variant.malformation?.isMalformed) {
+            return false;
+        }
+        
+        return variant.malformation.issues.some(issue => issue.level <= this.warningLevel);
+    }
+
+    /**
+     * Get filtered malformation issues based on warning level
+     * @param variant - Parsed variant object
+     * @returns Array of malformation issues at or above the current warning level
+     */
+    private getFilteredMalformationIssues(variant: ParsedVariant) {
+        if (!variant.malformation?.isMalformed) {
+            return [];
+        }
+        
+        return variant.malformation.issues.filter(issue => issue.level <= this.warningLevel);
+    }
+
+    /**
      * Check if variant has errors
      * @param variant - Parsed variant object
      * @param params - Actual parameter array
      * @param actualParamNames - Array of actual parameter names
-     * @returns True if variant has errors
+     * @returns True if variant has errors or malformation at current warning level
      */
     hasVariantErrors(variant: ParsedVariant, params: DocumentationParameter[], actualParamNames: string[]): boolean {
         const { extraParams, typeMismatches, returnTypeMismatches } = this.validateVariantParameters(variant, params, actualParamNames);
-        return extraParams.length > 0 || typeMismatches.length > 0 || returnTypeMismatches.length > 0;
+        const hasParameterErrors = extraParams.length > 0 || typeMismatches.length > 0 || returnTypeMismatches.length > 0;
+        const hasMalformation = this.hasRelevantMalformation(variant);
+        return hasParameterErrors || hasMalformation;
     }
 
     /**
@@ -307,6 +340,16 @@ export class SyntaxChecker {
         console.log(`\nVariant ${index + 1} analysis:`);
         const parsedParamNames = variant.parameters.map(p => p.name.toLowerCase());
         console.log(`Parsed parameter names:`, parsedParamNames);
+        
+        // Check for syntax malformation at current warning level
+        const filteredMalformationIssues = this.getFilteredMalformationIssues(variant);
+        if (filteredMalformationIssues.length > 0) {
+            console.log(`⚠️  Syntax malformation detected:`);
+            filteredMalformationIssues.forEach(issue => {
+                const levelStr = issue.level === WarningLevel.LEVEL_1 ? 'L1' : 'L2';
+                console.log(`   - [${levelStr}] ${issue.message}`);
+            });
+        }
         
         const { extraParams, typeMismatches, returnTypeMismatches } = this.validateVariantParameters(variant, params, actualParamNames);
         
@@ -328,7 +371,8 @@ export class SyntaxChecker {
             });
         }
         
-        if (extraParams.length === 0 && typeMismatches.length === 0 && returnTypeMismatches.length === 0) {
+        const hasMalformation = filteredMalformationIssues.length > 0;
+        if (extraParams.length === 0 && typeMismatches.length === 0 && returnTypeMismatches.length === 0 && !hasMalformation) {
             console.log(`✅ All parsed parameters are valid!`);
         }
     }

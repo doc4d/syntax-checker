@@ -19,7 +19,7 @@ interface ParameterParserState {
     currentParam: ParsedParameter | null;
     buffer: string;
     parameters: ParsedParameter[];
-    malformationIssues: string[];
+    malformationIssues: MalformationIssue[];
     lastProcessedChar: string;
 }
 export interface ParsedParameter {
@@ -38,11 +38,27 @@ export interface ParsedReturnType {
 }
 
 /**
+ * Warning levels for malformation issues
+ */
+export enum WarningLevel {
+    LEVEL_1 = 1, // High priority warnings (structural issues)
+    LEVEL_2 = 2  // Lower priority warnings (type issues)
+}
+
+/**
+ * Malformation issue with warning level
+ */
+export interface MalformationIssue {
+    message: string;
+    level: WarningLevel;
+}
+
+/**
  * Malformation information for parsed syntax
  */
 export interface MalformationInfo {
     isMalformed: boolean;
-    issues: string[];
+    issues: MalformationIssue[];
 }
 
 /**
@@ -114,7 +130,9 @@ export class Parser {
             if (paramStart === -1 || paramEnd === -1) {
                 const malformation: MalformationInfo = {
                     isMalformed: true,
-                    issues: paramStart === -1 ? ['Missing opening parenthesis'] : ['Missing closing parenthesis']
+                    issues: paramStart === -1 ? 
+                        [{ message: 'Missing opening parenthesis', level: WarningLevel.LEVEL_1 }] : 
+                        [{ message: 'Missing closing parenthesis', level: WarningLevel.LEVEL_1 }]
                 };
                 allVariants.push({ 
                     variant: trimmedVariant, 
@@ -156,6 +174,19 @@ export class Parser {
         }
 
         return allVariants;
+    }
+
+    /**
+     * Add a malformation issue to the parser state
+     * @param parserState - Parser state object
+     * @param message - Error message
+     * @param level - Warning level (defaults to LEVEL_1)
+     */
+    private addMalformationIssue(parserState: ParameterParserState, message: string, level: WarningLevel = WarningLevel.LEVEL_1): void {
+        parserState.malformationIssues.push({
+            message,
+            level
+        });
     }
 
     /**
@@ -238,16 +269,16 @@ export class Parser {
             parserState.currentParam!.type = parserState.buffer.trim() || 'unknown';
         } else if (parserState.state === PARSER_STATES.IN_PARAM_NAME) {
             // We ended in parameter name state - this means no type was provided
-            parserState.malformationIssues.push(`Parameter '${parserState.buffer.trim()}' has no type (missing colon)`);
+            this.addMalformationIssue(parserState, `Parameter '${parserState.buffer.trim()}' has no type (missing colon)`, WarningLevel.LEVEL_2);
         }
         
         this.finishParam(parserState);
         
         // Check for unclosed optional blocks
         if (parserState.optionalDepth > 0) {
-            parserState.malformationIssues.push(`Unclosed optional block (missing ${parserState.optionalDepth} closing brace${parserState.optionalDepth > 1 ? 's' : ''})`);
+            this.addMalformationIssue(parserState, `Unclosed optional block (missing ${parserState.optionalDepth} closing brace${parserState.optionalDepth > 1 ? 's' : ''})`);
         } else if (parserState.optionalDepth < 0) {
-            parserState.malformationIssues.push(`Extra closing brace (unmatched optional block closure)`);
+            this.addMalformationIssue(parserState, `Extra closing brace (unmatched optional block closure)`);
         }
         
         return {
@@ -284,7 +315,7 @@ export class Parser {
             
             // Check for malformed parameter names
             if (parserState.currentParam.name.includes('*')) {
-                parserState.malformationIssues.push(`Parameter name '${parserState.currentParam.name}' contains asterisks (likely malformed markup)`);
+                this.addMalformationIssue(parserState, `Parameter name '${parserState.currentParam.name}' contains asterisks (likely malformed markup)`);
             }
             
             // Set optional if we're in optional block
@@ -349,7 +380,7 @@ export class Parser {
         } else if (char === '}') {
             // Unexpected closing brace in normal state
             parserState.optionalDepth--;
-            parserState.malformationIssues.push('Unexpected closing brace (no matching opening brace)');
+            this.addMalformationIssue(parserState, 'Unexpected closing brace (no matching opening brace)');
         } else if (char === '*') {
             // Standalone * operator (since we preprocessed *param* patterns)
             this.addSpecialParameter(parserState, '*', 'operator');
@@ -364,17 +395,17 @@ export class Parser {
             const isAtStart = parserState.parameters.length === 0 && parserState.buffer.trim() === '';
             
             if (isDoubleSeq && !isValidOptionalStart) {
-                parserState.malformationIssues.push('Empty parameter found (double semicolon)');
+                this.addMalformationIssue(parserState, 'Empty parameter found (double semicolon)');
             } else if (isAtStart && !isValidOptionalStart) {
-                parserState.malformationIssues.push('Empty parameter found (semicolon at start)');
+                this.addMalformationIssue(parserState, 'Empty parameter found (semicolon at start)');
             } else if (hasEmptyCurrentParam && parserState.buffer.trim() === '') {
-                parserState.malformationIssues.push('Empty parameter found (double semicolon)');
+                this.addMalformationIssue(parserState, 'Empty parameter found (double semicolon)');
             }
             
             this.finishParam(parserState);
         } else if (char === ':') {
             // Colon without parameter name
-            parserState.malformationIssues.push('Unexpected colon (missing parameter name)');
+            this.addMalformationIssue(parserState, 'Unexpected colon (missing parameter name)');
         } else if (char !== ' ' && char !== '\t') {
             // Start collecting parameter name
             parserState.buffer = char;
@@ -403,7 +434,7 @@ export class Parser {
                 parserState.state = PARSER_STATES.NORMAL;
             } else if (parserState.optionalDepth < 0) {
                 // This shouldn't happen, but let's handle it
-                parserState.malformationIssues.push('Extra closing brace in optional block');
+                this.addMalformationIssue(parserState, 'Extra closing brace in optional block');
                 parserState.optionalDepth = 0;
                 parserState.state = PARSER_STATES.NORMAL;
             }
@@ -420,12 +451,12 @@ export class Parser {
             const isValidOptionalStart = parserState.lastProcessedChar === '{';
             
             if (isEmpty && isDoubleSeq && !isValidOptionalStart) {
-                parserState.malformationIssues.push('Empty parameter found (double semicolon)');
+                this.addMalformationIssue(parserState, 'Empty parameter found (double semicolon)');
             }
             this.finishParam(parserState);
         } else if (char === ':') {
             // Colon without parameter name in optional block
-            parserState.malformationIssues.push('Unexpected colon in optional block (missing parameter name)');
+            this.addMalformationIssue(parserState, 'Unexpected colon in optional block (missing parameter name)');
         } else if (char !== ' ' && char !== '\t') {
             // Start collecting parameter name
             parserState.buffer = char;
@@ -450,7 +481,7 @@ export class Parser {
             // End of parameter without type - this is a malformation
             const paramName = parserState.buffer.trim();
             parserState.currentParam!.name = paramName;
-            parserState.malformationIssues.push(`Parameter '${paramName}' has no type (missing colon and type)`);
+            this.addMalformationIssue(parserState, `Parameter '${paramName}' has no type (missing colon and type)`, WarningLevel.LEVEL_2);
             parserState.buffer = '';
             this.finishParam(parserState);
             parserState.state = parserState.optionalDepth > 0 ? PARSER_STATES.IN_OPTIONAL : PARSER_STATES.NORMAL;
@@ -458,7 +489,7 @@ export class Parser {
             // Optional block starts - finish current param first (without type)
             const paramName = parserState.buffer.trim();
             parserState.currentParam!.name = paramName;
-            parserState.malformationIssues.push(`Parameter '${paramName}' has no type (missing colon and type before optional block)`);
+            this.addMalformationIssue(parserState, `Parameter '${paramName}' has no type (missing colon and type before optional block)`, WarningLevel.LEVEL_2);
             parserState.buffer = '';
             this.finishParam(parserState);
             parserState.optionalDepth++;
@@ -467,12 +498,12 @@ export class Parser {
             // Optional block ends - finish current param first (without type)
             const paramName = parserState.buffer.trim();
             parserState.currentParam!.name = paramName;
-            parserState.malformationIssues.push(`Parameter '${paramName}' has no type (missing colon and type before optional block end)`);
+            this.addMalformationIssue(parserState, `Parameter '${paramName}' has no type (missing colon and type before optional block end)`, WarningLevel.LEVEL_2);
             parserState.buffer = '';
             this.finishParam(parserState);
             parserState.optionalDepth--;
             if (parserState.optionalDepth < 0) {
-                parserState.malformationIssues.push('Extra closing brace (unmatched optional block closure)');
+                this.addMalformationIssue(parserState, 'Extra closing brace (unmatched optional block closure)');
                 parserState.optionalDepth = 0;
             }
             parserState.state = parserState.optionalDepth > 0 ? PARSER_STATES.IN_OPTIONAL : PARSER_STATES.NORMAL;
@@ -493,20 +524,20 @@ export class Parser {
             // Valid end of type
             parserState.currentParam!.type = parserState.buffer.trim() || 'unknown';
             if (!parserState.buffer.trim()) {
-                parserState.malformationIssues.push(`Parameter '${parserState.currentParam!.name}' has empty type after colon`);
+                this.addMalformationIssue(parserState, `Parameter '${parserState.currentParam!.name}' has empty type after colon`, WarningLevel.LEVEL_2);
             }
             parserState.buffer = '';
             this.finishParam(parserState);
             parserState.state = parserState.optionalDepth > 0 ? PARSER_STATES.IN_OPTIONAL : PARSER_STATES.NORMAL;
         } else if (char === ':') {
             // Double colon - this is a malformation
-            parserState.malformationIssues.push(`Double colon found in parameter '${parserState.currentParam!.name}' type definition`);
+            this.addMalformationIssue(parserState, `Double colon found in parameter '${parserState.currentParam!.name}' type definition`);
             parserState.buffer += char;
         } else if (char === '{') {
             // Optional block starts - finish current param first
             parserState.currentParam!.type = parserState.buffer.trim() || 'unknown';
             if (!parserState.buffer.trim()) {
-                parserState.malformationIssues.push(`Parameter '${parserState.currentParam!.name}' has empty type before optional block`);
+                this.addMalformationIssue(parserState, `Parameter '${parserState.currentParam!.name}' has empty type before optional block`, WarningLevel.LEVEL_2);
             }
             parserState.buffer = '';
             this.finishParam(parserState);
@@ -516,13 +547,13 @@ export class Parser {
             // Optional block ends - finish current param first, then decrement depth
             parserState.currentParam!.type = parserState.buffer.trim() || 'unknown';
             if (!parserState.buffer.trim()) {
-                parserState.malformationIssues.push(`Parameter '${parserState.currentParam!.name}' has empty type before optional block end`);
+                this.addMalformationIssue(parserState, `Parameter '${parserState.currentParam!.name}' has empty type before optional block end`, WarningLevel.LEVEL_2);
             }
             parserState.buffer = '';
             this.finishParam(parserState);
             parserState.optionalDepth--;
             if (parserState.optionalDepth < 0) {
-                parserState.malformationIssues.push('Extra closing brace (unmatched optional block closure)');
+                this.addMalformationIssue(parserState, 'Extra closing brace (unmatched optional block closure)');
                 parserState.optionalDepth = 0;
             }
             parserState.state = parserState.optionalDepth > 0 ? PARSER_STATES.IN_OPTIONAL : PARSER_STATES.NORMAL;
