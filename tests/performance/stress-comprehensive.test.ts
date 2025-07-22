@@ -33,7 +33,7 @@ describe('Parser Stress Tests - Fixed', () => {
       const endTime = performance.now();
       
       expect(result).toHaveLength(10);
-      expect(endTime - startTime).toBeLessThan(100));
+      expect(endTime - startTime).toBeLessThan(100);
     });
 
     it('should handle repeated parsing operations efficiently', () => {
