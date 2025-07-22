@@ -3,13 +3,13 @@
 /dist/
 *.js
 *.js.map
-*.d.ts
 *.d.ts.map
 
 # Keep TypeScript source files
 !vitest.config.js
 !*.config.js
 !src/types.d.ts
+!./@types/**/*.d.ts
 
 # Node.js
 node_modules/
