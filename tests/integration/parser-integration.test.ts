@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Parser } from '../../out/parser.js';
+import { Parser } from '../../src/parser';
 
 // Mock SyntaxChecker for testing - simplified version without external dependencies
 class MockSyntaxChecker {

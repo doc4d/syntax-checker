@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Parser } from '../../out/src/parser.js';
+import { Parser } from '../../src/parser';
 
 describe('Syntax Checker Stress Tests', () => {
   describe('Performance Stress Tests', () => {

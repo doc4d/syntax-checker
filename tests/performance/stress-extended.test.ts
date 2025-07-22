@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Parser } from '../../out/src/parser.js';
+import { Parser } from '../../src/parser';
 
 describe('Parser Stress Tests', () => {
   let parser: Parser;
@@ -191,7 +191,7 @@ describe('Parser Stress Tests', () => {
     });
   });
 
-  describe.only('Edge Case Combinations', () => {
+  describe('Edge Case Combinations', () => {
     it('should handle complex combinations of edge cases', () => {
       const edgeCases = [
         'test(🚀param:Type;{...spread:SpreadType;opt:OptType})',

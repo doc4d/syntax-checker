@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { SyntaxChecker } from '../../out/index.js';
+import { SyntaxChecker } from '../../src/checker';
 
 describe('SyntaxChecker Command Validation', () => {
   let checker: SyntaxChecker;
