@@ -42,7 +42,7 @@ export class Tokenizer {
         this.tokens = [];
 
         while (this.position < this.input.length) {
-            this.scanTokenFast();
+            this.scanToken();
         }
 
         return this.tokens;
@@ -51,7 +51,7 @@ export class Tokenizer {
     /**
      * Fast token scanning with minimal method calls
      */
-    private scanTokenFast(): void {
+    private scanToken(): void {
         const char = this.input[this.position];
 
         // Skip whitespace without creating tokens (we don't need them)
@@ -115,7 +115,7 @@ export class Tokenizer {
                 break;
             default:
                 // Handle identifiers (parameter names and types)
-                this.scanIdentifierFast();
+                this.scanIdentifier();
                 break;
         }
     }
@@ -123,7 +123,7 @@ export class Tokenizer {
     /**
      * Fast identifier scanning
      */
-    private scanIdentifierFast(): void {
+    private scanIdentifier(): void {
         const start = this.position;
         
         // Handle spread operator (...) at the beginning
@@ -134,7 +134,7 @@ export class Tokenizer {
             this.position += 3; // Skip the three dots
             
             // Continue reading the identifier after spread
-            while (this.position < this.input.length && this.isIdentifierCharFast(this.input[this.position])) {
+            while (this.position < this.input.length && this.isIdentifierChar(this.input[this.position])) {
                 this.position++;
             }
             
@@ -148,7 +148,7 @@ export class Tokenizer {
         }
 
         // Regular identifier
-        while (this.position < this.input.length && this.isIdentifierCharFast(this.input[this.position])) {
+        while (this.position < this.input.length && this.isIdentifierChar(this.input[this.position])) {
             this.position++;
         }
 
@@ -156,19 +156,22 @@ export class Tokenizer {
             const value = this.input.substring(start, this.position);
             
             // Simple context-based type determination
-            const tokenType = this.determineIdentifierTypeFast();
+            const tokenType = this.determineIdentifierType();
             this.tokens.push({
                 type: tokenType,
                 value,
                 position: start
             });
+        } else {
+            // If no valid identifier characters were found, skip this character to avoid infinite loop
+            this.position++;
         }
     }
 
     /**
      * Fast identifier character check
      */
-    private isIdentifierCharFast(char: string): boolean {
+    private isIdentifierChar(char: string): boolean {
         const code = char.charCodeAt(0);
         return (code >= 48 && code <= 57) ||   // 0-9
                (code >= 65 && code <= 90) ||   // A-Z
@@ -180,7 +183,7 @@ export class Tokenizer {
     /**
      * Fast type determination based on previous token
      */
-    private determineIdentifierTypeFast(): TokenType {
+    private determineIdentifierType(): TokenType {
         // Look at the last token to determine context
         for (let i = this.tokens.length - 1; i >= 0; i--) {
             const token = this.tokens[i];
