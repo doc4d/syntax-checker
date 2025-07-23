@@ -141,14 +141,12 @@ export class MalformationChecker {
             }
         }
 
+        // If no parentheses found, this is a property (valid syntax without parameters)
         if (paramStart === -1) {
-            structuralIssues.push({
-                message: 'Missing opening parenthesis',
-                level: WarningLevel.LEVEL_1
-            });
             return { paramString: null, paramEnd: -1, issues: structuralIssues };
         }
         
+        // If opening parenthesis found but no closing parenthesis, that's an error
         if (paramEnd === -1) {
             structuralIssues.push({
                 message: 'Missing closing parenthesis',

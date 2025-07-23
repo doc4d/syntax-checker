@@ -316,17 +316,25 @@ export class SyntaxChecker {
     }
 
     /**
-     * Check if variant has errors
+     * Check if variant has any issues (malformations, parameter errors, type mismatches)
      * @param variant - Parsed variant object
-     * @param params - Actual parameter array
-     * @param actualParamNames - Array of actual parameter names
-     * @returns True if variant has errors or malformation at current warning level
+     * @param params - Actual parameter array (can be empty/undefined)
+     * @param actualParamNames - Array of actual parameter names (can be empty)
+     * @returns True if variant has any issues at current warning level
      */
-    hasVariantErrors(variant: ParsedVariant, params: DocumentationParameter[], actualParamNames: string[]): boolean {
+    private hasVariantIssues(variant: ParsedVariant, params: DocumentationParameter[] = [], actualParamNames: string[] = []): boolean {
+        // Always check for malformations first
+        const hasMalformation = this.hasRelevantMalformation(variant);
+        
+        // Only check parameter errors if we have params to validate against
+        if (params.length === 0) {
+            return hasMalformation;
+        }
+        
         const { extraParams, typeMismatches, returnTypeMismatches } = this.validateVariantParameters(variant, params, actualParamNames);
         const hasParameterErrors = extraParams.length > 0 || typeMismatches.length > 0 || returnTypeMismatches.length > 0;
-        const hasMalformation = this.hasRelevantMalformation(variant);
-        return hasParameterErrors || hasMalformation;
+        
+        return hasMalformation || hasParameterErrors;
     }
 
     /**
@@ -392,24 +400,14 @@ export class SyntaxChecker {
         
         // Check if there are any errors/warnings
         let hasErrors = false;
+        const actualParamNames = params && params.length > 0 ? this.extractActualParamNames(params) : [];
         
-        if (params && params.length > 0) {
-            const actualParamNames = this.extractActualParamNames(params);
-            
-            // Check each parsed variant for errors
-            parsedParams.forEach((variant) => {
-                if (this.hasVariantErrors(variant, params, actualParamNames)) {
-                    hasErrors = true;
-                }
-            });
-        } else {
-            // Even without params, check for malformations
-            parsedParams.forEach((variant) => {
-                if (this.hasRelevantMalformation(variant)) {
-                    hasErrors = true;
-                }
-            });
-        }
+        // Check each parsed variant for issues (malformations and parameter errors)
+        parsedParams.forEach((variant) => {
+            if (this.hasVariantIssues(variant, params, actualParamNames)) {
+                hasErrors = true;
+            }
+        });
         
         // Only show full output if there are errors
         if (hasErrors) {
