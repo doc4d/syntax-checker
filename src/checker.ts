@@ -402,6 +402,13 @@ export class SyntaxChecker {
                     hasErrors = true;
                 }
             });
+        } else {
+            // Even without params, check for malformations
+            parsedParams.forEach((variant) => {
+                if (this.hasRelevantMalformation(variant)) {
+                    hasErrors = true;
+                }
+            });
         }
         
         // Only show full output if there are errors
@@ -422,6 +429,19 @@ export class SyntaxChecker {
                 });
             } else {
                 console.log(`\nNo Params field found for this command`);
+                
+                // Still check for malformations even without params
+                parsedParams.forEach((variant, index) => {
+                    const filteredMalformationIssues = this.getFilteredMalformationIssues(variant);
+                    if (filteredMalformationIssues.length > 0) {
+                        console.log(`\nVariant ${index + 1} analysis:`);
+                        console.log(`⚠️  Syntax malformation detected:`);
+                        filteredMalformationIssues.forEach(issue => {
+                            const levelStr = issue.level === WarningLevel.LEVEL_1 ? 'L1' : 'L2';
+                            console.log(`   - [${levelStr}] ${issue.message}`);
+                        });
+                    }
+                });
             }
             
             console.log('-'.repeat(60));

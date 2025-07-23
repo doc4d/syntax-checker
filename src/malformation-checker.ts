@@ -113,6 +113,55 @@ export class MalformationChecker {
     }
 
     /**
+     * Check syntax string for parenthesis balance
+     * @param syntaxString - The original syntax string to check
+     * @returns Object containing parameter string, end position, and any issues found
+     */
+    checkSyntaxStructure(syntaxString: string): { paramString: string | null, paramEnd: number, issues: MalformationIssue[] } {
+        const structuralIssues: MalformationIssue[] = [];
+        
+        // Find the parameters section between parentheses
+        let paramStart = -1;
+        let paramEnd = -1;
+        let parenDepth = 0;
+        
+        for (let i = 0; i < syntaxString.length; i++) {
+            const char = syntaxString[i];
+            if (char === '(') {
+                if (paramStart === -1) {
+                    paramStart = i + 1;
+                }
+                parenDepth++;
+            } else if (char === ')') {
+                parenDepth--;
+                if (parenDepth === 0 && paramStart !== -1) {
+                    paramEnd = i;
+                    break;
+                }
+            }
+        }
+
+        if (paramStart === -1) {
+            structuralIssues.push({
+                message: 'Missing opening parenthesis',
+                level: WarningLevel.LEVEL_1
+            });
+            return { paramString: null, paramEnd: -1, issues: structuralIssues };
+        }
+        
+        if (paramEnd === -1) {
+            structuralIssues.push({
+                message: 'Missing closing parenthesis',
+                level: WarningLevel.LEVEL_1
+            });
+            return { paramString: null, paramEnd: -1, issues: structuralIssues };
+        }
+
+        const paramString = syntaxString.substring(paramStart, paramEnd).trim();
+        return { paramString, paramEnd, issues: structuralIssues };
+    }
+
+    /**
      * Add a malformation issue
      * @param message - Error message
      * @param level - Warning level

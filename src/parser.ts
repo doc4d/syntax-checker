@@ -1,8 +1,6 @@
 import { 
     ParsedParameter, 
     ParsedReturnType, 
-    WarningLevel, 
-    MalformationInfo, 
     ParsedVariant 
 } from './types.js';
 import { Tokenizer } from './tokenizer.js';
@@ -13,8 +11,8 @@ import { ParameterChecker } from './parameter-checker.js';
 export type { 
     ParsedParameter, 
     ParsedReturnType, 
-    MalformationInfo, 
-    ParsedVariant 
+    ParsedVariant,
+    MalformationInfo
 } from './types.js';
 
 // Re-export enum as value
@@ -57,43 +55,23 @@ export class Parser {
             const trimmedVariant = syntaxVariant.trim();
             if (!trimmedVariant) continue;
 
-            // Find the parameters section between parentheses
-            let paramStart = -1;
-            let paramEnd = -1;
-            let parenDepth = 0;
+            // Use malformation checker to validate syntax structure and extract parameters
+            const syntaxStructure = this.malformationChecker.checkSyntaxStructure(trimmedVariant);
             
-            for (let i = 0; i < trimmedVariant.length; i++) {
-                const char = trimmedVariant[i];
-                if (char === '(') {
-                    if (paramStart === -1) {
-                        paramStart = i + 1;
-                    }
-                    parenDepth++;
-                } else if (char === ')') {
-                    parenDepth--;
-                    if (parenDepth === 0 && paramStart !== -1) {
-                        paramEnd = i;
-                        break;
-                    }
-                }
-            }
-
-            if (paramStart === -1 || paramEnd === -1) {
-                const malformation: MalformationInfo = {
-                    isMalformed: true,
-                    issues: paramStart === -1 ? 
-                        [{ message: 'Missing opening parenthesis', level: WarningLevel.LEVEL_1 }] : 
-                        [{ message: 'Missing closing parenthesis', level: WarningLevel.LEVEL_1 }]
-                };
+            // If structural issues found, add variant with malformation
+            if (syntaxStructure.issues.length > 0) {
                 allVariants.push({ 
                     variant: trimmedVariant, 
                     parameters: [],
-                    malformation: malformation
+                    malformation: {
+                        isMalformed: true,
+                        issues: syntaxStructure.issues
+                    }
                 });
                 continue;
             }
 
-            const paramString = trimmedVariant.substring(paramStart, paramEnd).trim();
+            const paramString = syntaxStructure.paramString;
             if (!paramString) {
                 allVariants.push({ variant: trimmedVariant, parameters: [] });
                 continue;
@@ -117,7 +95,7 @@ export class Parser {
             const allIssues = [...malformationIssues, ...parameterResult.issues];
             
             // Parse return type information after the closing parenthesis
-            const returnType = this.parseReturnType(trimmedVariant, paramEnd + 1);
+            const returnType = this.parseReturnType(trimmedVariant, syntaxStructure.paramEnd + 1);
             
             const parsedVariant: ParsedVariant = { 
                 variant: trimmedVariant, 
