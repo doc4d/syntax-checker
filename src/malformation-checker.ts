@@ -15,13 +15,11 @@ export class MalformationChecker {
     checkMalformations(tokens: Token[]): MalformationIssue[] {
         this.issues = [];
 
-        // Skip whitespace tokens upfront for faster processing
-        const nonWhitespaceTokens = tokens.filter(token => token.type !== TokenType.WHITESPACE);
-
-        this.checkBraceBalance(nonWhitespaceTokens);
-        this.checkEmptyParameters(nonWhitespaceTokens);
-        this.checkUnexpectedTokens(nonWhitespaceTokens);
-        this.checkStructuralIssues(nonWhitespaceTokens);
+        // Since whitespace is not tokenized, we can work directly with the tokens
+        this.checkBraceBalance(tokens);
+        this.checkEmptyParameters(tokens);
+        this.checkUnexpectedTokens(tokens);
+        this.checkStructuralIssues(tokens);
 
         return this.issues;
     }
@@ -29,10 +27,10 @@ export class MalformationChecker {
     /**
      * Brace balance checking
      */
-    private checkBraceBalance(nonWhitespaceTokens: Token[]): void {
+    private checkBraceBalance(tokens: Token[]): void {
         let braceDepth = 0;
 
-        for (const token of nonWhitespaceTokens) {
+        for (const token of tokens) {
             if (token.type === TokenType.OPEN_BRACE) {
                 braceDepth++;
             } else if (token.type === TokenType.CLOSE_BRACE) {
@@ -52,11 +50,11 @@ export class MalformationChecker {
     /**
      * Empty parameter checking
      */
-    private checkEmptyParameters(nonWhitespaceTokens: Token[]): void {
-        for (let i = 0; i < nonWhitespaceTokens.length; i++) {
-            const token = nonWhitespaceTokens[i];
-            const nextToken = nonWhitespaceTokens[i + 1];
-            const prevToken = nonWhitespaceTokens[i - 1];
+    private checkEmptyParameters(tokens: Token[]): void {
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            const nextToken = tokens[i + 1];
+            const prevToken = tokens[i - 1];
 
             if (token.type === TokenType.SEMICOLON) {
                 // Check for double semicolon
@@ -75,11 +73,11 @@ export class MalformationChecker {
     /**
      * Unexpected token checking
      */
-    private checkUnexpectedTokens(nonWhitespaceTokens: Token[]): void {
-        for (let i = 0; i < nonWhitespaceTokens.length; i++) {
-            const token = nonWhitespaceTokens[i];
-            const nextToken = nonWhitespaceTokens[i + 1];
-            const prevToken = nonWhitespaceTokens[i - 1];
+    private checkUnexpectedTokens(tokens: Token[]): void {
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            const nextToken = tokens[i + 1];
+            const prevToken = tokens[i - 1];
 
             if (token.type === TokenType.COLON) {
                 // Check for colon without parameter name
@@ -113,9 +111,9 @@ export class MalformationChecker {
     /**
      * Structural issue checking
      */
-    private checkStructuralIssues(nonWhitespaceTokens: Token[]): void {
+    private checkStructuralIssues(tokens: Token[]): void {
         // Check for malformed parameter names and types
-        for (const token of nonWhitespaceTokens) {
+        for (const token of tokens) {
             if (token.type === TokenType.PARAMETER_NAME) {
                 // Check ECMA compliance for parameter names
                 if (!this.isEcmaCompliantIdentifier(token.value)) {

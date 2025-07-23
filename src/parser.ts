@@ -3,7 +3,7 @@ import {
     ParsedReturnType, 
     ParsedVariant 
 } from './types.js';
-import { Tokenizer } from './tokenizer.js';
+import { Tokenizer, Token, TokenType } from './tokenizer.js';
 import { MalformationChecker } from './malformation-checker.js';
 import { ParameterChecker } from './parameter-checker.js';
 
@@ -56,6 +56,8 @@ export class Parser {
             if (!trimmedVariant) continue;
 
             // Use malformation checker to validate syntax structure and extract parameters
+            const tokenizer = new Tokenizer();
+            const syntaxTokens = tokenizer.tokenize(trimmedVariant);
             const syntaxStructure = this.malformationChecker.checkSyntaxStructure(trimmedVariant);
             
             // If structural issues found, add variant with malformation
@@ -73,7 +75,13 @@ export class Parser {
 
             const paramString = syntaxStructure.paramString;
             if (!paramString) {
-                allVariants.push({ variant: trimmedVariant, parameters: [] });
+                // Parse return type information using already computed tokens
+                const returnType = this.parseReturnType(syntaxTokens, syntaxStructure.paramEnd + 1);
+                const variant: ParsedVariant = { variant: trimmedVariant, parameters: [] };
+                if (returnType) {
+                    variant.returnType = returnType;
+                }
+                allVariants.push(variant);
                 continue;
             }
 
@@ -94,8 +102,8 @@ export class Parser {
             // Combine all issues
             const allIssues = [...malformationIssues, ...parameterResult.issues];
             
-            // Parse return type information after the closing parenthesis
-            const returnType = this.parseReturnType(trimmedVariant, syntaxStructure.paramEnd + 1);
+            // Parse return type information using already computed tokens
+            const returnType = this.parseReturnType(syntaxTokens, syntaxStructure.paramEnd + 1);
             
             const parsedVariant: ParsedVariant = { 
                 variant: trimmedVariant, 
@@ -163,36 +171,73 @@ export class Parser {
     }
 
     /**
-     * Parse return type information from syntax string
-     * @param syntaxString - The full syntax string
-     * @param startIndex - Index after the closing parenthesis
+     * Parse return type information from syntax tokens
+     * @param syntaxTokens - The tokenized syntax string
+     * @param startIndex - Index after the closing parenthesis in the original string
      * @returns ParsedReturnType object or undefined
      */
-    parseReturnType(syntaxString: string, startIndex: number): ParsedReturnType | undefined {
-        if (startIndex >= syntaxString.length) return undefined;
+    parseReturnType(syntaxTokens: Token[], startIndex: number): ParsedReturnType | undefined {
+        // Find the last closing parenthesis token
+        let lastClosingParenIndex = -1;
+        for (let i = syntaxTokens.length - 1; i >= 0; i--) {
+            if (syntaxTokens[i].type === TokenType.CLOSE_PAREN) {
+                lastClosingParenIndex = i;
+                break;
+            }
+        }
         
-        const remainingString = syntaxString.substring(startIndex).trim();
-        if (!remainingString) return undefined;
+        if (lastClosingParenIndex === -1) {
+            // No closing parenthesis found, look for tokens after startIndex position
+            const returnTypeTokens = syntaxTokens.filter(token => token.position >= startIndex);
+            if (returnTypeTokens.length === 0) return undefined;
+            return this.parseReturnTypeFromTokens(returnTypeTokens);
+        }
         
+        // Get tokens after the closing parenthesis
+        const returnTypeTokens = syntaxTokens.slice(lastClosingParenIndex + 1);
+        if (returnTypeTokens.length === 0) return undefined;
+        
+        return this.parseReturnTypeFromTokens(returnTypeTokens);
+    }
+
+    private parseReturnTypeFromTokens(returnTypeTokens: Token[]): ParsedReturnType | undefined {
         const returnType: ParsedReturnType = {};
         
-        // Check for arrow syntax: -> returnName : Type or -> returnName
-        if (remainingString.startsWith('->')) {
-            const afterArrow = remainingString.substring(2).trim();
+        // Check for arrow syntax using tokens: -> returnName : Type or -> returnName
+        if (returnTypeTokens.length >= 1 && returnTypeTokens[0].type === TokenType.ARROW) {
+            // Find tokens after the arrow
+            const afterArrowTokens = returnTypeTokens.slice(1);
+            if (afterArrowTokens.length === 0) return undefined;
             
-            // Look for colon to separate name and type
-            const colonIndex = afterArrow.indexOf(':');
-            if (colonIndex !== -1) {
+            // Look for colon token to separate name and type
+            const colonTokenIndex = afterArrowTokens.findIndex(token => token.type === TokenType.COLON);
+            
+            if (colonTokenIndex !== -1) {
                 // Format: -> returnName : Type
-                returnType.name = afterArrow.substring(0, colonIndex).trim();
-                returnType.type = afterArrow.substring(colonIndex + 1).trim();
+                const nameTokens = afterArrowTokens.slice(0, colonTokenIndex);
+                const typeTokens = afterArrowTokens.slice(colonTokenIndex + 1);
+                
+                if (nameTokens.length > 0) {
+                    // Since whitespace is not tokenized, just take the first token
+                    returnType.name = nameTokens[0].value.trim();
+                }
+                if (typeTokens.length > 0) {
+                    // Since whitespace is not tokenized, just take the first token
+                    returnType.type = typeTokens[0].value.trim();
+                }
             } else {
                 // Format: -> returnName
-                returnType.name = afterArrow.trim();
+                if (afterArrowTokens.length > 0) {
+                    returnType.name = afterArrowTokens[0].value.trim();
+                }
             }
-        } else if (remainingString.startsWith(':')) {
+        } else if (returnTypeTokens.length >= 1 && returnTypeTokens[0].type === TokenType.COLON) {
             // Format: : Type
-            returnType.type = remainingString.substring(1).trim();
+            const typeTokens = returnTypeTokens.slice(1);
+            if (typeTokens.length > 0) {
+                // Since whitespace is not tokenized, just take the first token
+                returnType.type = typeTokens[0].value.trim();
+            }
         }
         
         // Return undefined if no meaningful return type information was found

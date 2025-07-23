@@ -10,8 +10,8 @@ export enum TokenType {
     CLOSE_BRACE = 'close_brace',
     OPEN_PAREN = 'open_paren',
     CLOSE_PAREN = 'close_paren',
+    ARROW = 'arrow',
     OPERATOR = 'operator',
-    WHITESPACE = 'whitespace',
     SPREAD = 'spread',
     ESCAPED_ASTERISK = 'escaped_asterisk'
 }
@@ -89,6 +89,13 @@ export class Tokenizer {
         // Handle escaped asterisks
         if (char === '\\' && this.position + 1 < this.input.length && this.input[this.position + 1] === '*') {
             this.addToken(TokenType.ESCAPED_ASTERISK, '\\*', this.position);
+            this.position += 2;
+            return;
+        }
+
+        // Handle arrow operator (->)
+        if (char === '-' && this.position + 1 < this.input.length && this.input[this.position + 1] === '>') {
+            this.addToken(TokenType.ARROW, '->', this.position);
             this.position += 2;
             return;
         }

@@ -15,9 +15,8 @@ export class ParameterChecker {
     checkParameters(tokens: Token[]): { parameters: ParsedParameter[], issues: MalformationIssue[] } {
         this.issues = [];
 
-        // Skip whitespace tokens upfront for faster processing
-        const nonWhitespaceTokens = tokens.filter(token => token.type !== TokenType.WHITESPACE);
-        const parameters = this.buildParametersFast(nonWhitespaceTokens);
+        // Since whitespace is not tokenized, we can work directly with the tokens
+        const parameters = this.buildParametersFast(tokens);
         
         return {
             parameters,
