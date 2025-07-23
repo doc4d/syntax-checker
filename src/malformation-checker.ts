@@ -1,5 +1,5 @@
 import { Token, TokenType } from './tokenizer.js';
-import { WarningLevel, MalformationIssue } from './types.js';
+import { WarningCode, WARNING_DEFINITIONS, MalformationIssue } from './types.js';
 
 /**
  * Malformation checker for tokens
@@ -38,14 +38,14 @@ export class MalformationChecker {
             } else if (token.type === TokenType.CLOSE_BRACE) {
                 braceDepth--;
                 if (braceDepth < 0) {
-                    this.addIssue('Extra closing brace (unmatched optional block closure)', WarningLevel.LEVEL_1);
+                    this.addIssue(WarningCode.EXTRA_CLOSING_BRACE);
                     braceDepth = 0; // Reset to prevent cascade errors
                 }
             }
         }
 
         if (braceDepth > 0) {
-            this.addIssue(`Unclosed optional block (missing ${braceDepth} closing brace${braceDepth > 1 ? 's' : ''})`, WarningLevel.LEVEL_1);
+            this.addIssue(WarningCode.UNCLOSED_OPTIONAL_BLOCK, braceDepth);
         }
     }
 
@@ -61,12 +61,12 @@ export class MalformationChecker {
             if (token.type === TokenType.SEMICOLON) {
                 // Check for double semicolon
                 if (nextToken && nextToken.type === TokenType.SEMICOLON) {
-                    this.addIssue('Empty parameter found (double semicolon)', WarningLevel.LEVEL_1);
+                    this.addIssue(WarningCode.EMPTY_PARAMETER_DOUBLE_SEMICOLON);
                 }
                 
                 // Check for semicolon at start
                 if (!prevToken) {
-                    this.addIssue('Empty parameter found (semicolon at start)', WarningLevel.LEVEL_1);
+                    this.addIssue(WarningCode.EMPTY_PARAMETER_AT_START);
                 }
             }
         }
@@ -84,12 +84,12 @@ export class MalformationChecker {
             if (token.type === TokenType.COLON) {
                 // Check for colon without parameter name
                 if (!prevToken || (prevToken.type !== TokenType.PARAMETER_NAME && prevToken.type !== TokenType.SPREAD)) {
-                    this.addIssue('Unexpected colon (missing parameter name)', WarningLevel.LEVEL_1);
+                    this.addIssue(WarningCode.UNEXPECTED_COLON_NO_PARAM);
                 }
                 
                 // Check for double colon
                 if (nextToken && nextToken.type === TokenType.COLON) {
-                    this.addIssue('Double colon found in parameter definition', WarningLevel.LEVEL_1);
+                    this.addIssue(WarningCode.DOUBLE_COLON);
                 }
             }
         }
@@ -102,12 +102,12 @@ export class MalformationChecker {
         // Check for malformed parameter names (containing asterisks)
         for (const token of nonWhitespaceTokens) {
             if (token.type === TokenType.PARAMETER_NAME && token.value.includes('*')) {
-                this.addIssue(`Parameter name '${token.value}' contains asterisks (likely malformed markup)`, WarningLevel.LEVEL_1);
+                this.addIssue(WarningCode.MALFORMED_PARAMETER_NAME, token.value);
             }
             
             // Check for invalid characters in type definitions
             if (token.type === TokenType.TYPE && token.value.includes('/')) {
-                this.addIssue(`Type definition '${token.value}' contains invalid forward slash characters`, WarningLevel.LEVEL_1);
+                this.addIssue(WarningCode.INVALID_TYPE_FORWARD_SLASH, token.value);
             }
         }
 
@@ -126,12 +126,12 @@ export class MalformationChecker {
 
             // Check for semicolon at start (empty parameter at beginning)
             if (i === 0 && token.type === TokenType.SEMICOLON) {
-                this.addIssue('Empty parameter found (semicolon at start)', WarningLevel.LEVEL_1);
+                this.addIssue(WarningCode.EMPTY_PARAMETER_AT_START);
             }
 
             // Check for double semicolon (empty parameter between semicolons)
             if (token.type === TokenType.SEMICOLON && nextToken && nextToken.type === TokenType.SEMICOLON) {
-                this.addIssue('Empty parameter found (double semicolon)', WarningLevel.LEVEL_1);
+                this.addIssue(WarningCode.EMPTY_PARAMETER_DOUBLE_SEMICOLON);
             }
         }
     }
@@ -145,15 +145,20 @@ export class MalformationChecker {
             const nextToken = tokens[i + 1];
 
             if (token.type === TokenType.COLON && nextToken) {
-                // Check for unexpected semicolon after colon
+                // Check for unexpected semicolon after colon (empty type)
                 if (nextToken.type === TokenType.SEMICOLON) {
-                    this.addIssue('Unexpected semicolon after colon', WarningLevel.LEVEL_1);
+                    this.addIssue(WarningCode.UNEXPECTED_SEMICOLON_AFTER_COLON);
                 }
 
-                // Check for unexpected closing brace after colon
+                // Check for unexpected closing brace after colon (empty type)
                 if (nextToken.type === TokenType.CLOSE_BRACE) {
-                    this.addIssue('Unexpected closing brace after colon', WarningLevel.LEVEL_1);
+                    this.addIssue(WarningCode.UNEXPECTED_CLOSING_BRACE_AFTER_COLON);
                 }
+            }
+            
+            // Check for colon at end of parameter list (empty type)
+            if (token.type === TokenType.COLON && !nextToken) {
+                this.addIssue(WarningCode.PARAMETER_EMPTY_TYPE_AFTER_COLON);
             }
         }
     }
@@ -195,8 +200,9 @@ export class MalformationChecker {
         // If opening parenthesis found but no closing parenthesis, that's an error
         if (paramEnd === -1) {
             structuralIssues.push({
-                message: 'Missing closing parenthesis',
-                level: WarningLevel.LEVEL_1
+                id: WarningCode.MISSING_CLOSING_PARENTHESIS,
+                message: WARNING_DEFINITIONS[WarningCode.MISSING_CLOSING_PARENTHESIS].message(),
+                level: WARNING_DEFINITIONS[WarningCode.MISSING_CLOSING_PARENTHESIS].level
             });
             return { paramString: null, paramEnd: -1, issues: structuralIssues };
         }
@@ -206,14 +212,16 @@ export class MalformationChecker {
     }
 
     /**
-     * Add a malformation issue
-     * @param message - Error message
-     * @param level - Warning level
+     * Add a malformation issue using warning code
+     * @param code - Warning code identifier
+     * @param args - Arguments for the message template
      */
-    private addIssue(message: string, level: WarningLevel): void {
+    private addIssue(code: WarningCode, ...args: unknown[]): void {
+        const definition = WARNING_DEFINITIONS[code];
         this.issues.push({
-            message,
-            level
+            id: code,
+            message: (definition.message as (...args: unknown[]) => string)(...args),
+            level: definition.level
         });
     }
 }

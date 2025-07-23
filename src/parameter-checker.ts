@@ -1,11 +1,10 @@
 import { Token, TokenType } from './tokenizer.js';
-import { WarningLevel, MalformationIssue, ParsedParameter } from './types.js';
+import { WarningCode, WARNING_DEFINITIONS, MalformationIssue, ParsedParameter } from './types.js';
 
 /**
  * Parameter checker for type-related issues
  */
 export class ParameterChecker {
-    private tokens: Token[] = [];
     private issues: MalformationIssue[] = [];
 
     /**
@@ -14,7 +13,6 @@ export class ParameterChecker {
      * @returns Object containing parameters and issues
      */
     checkParameters(tokens: Token[]): { parameters: ParsedParameter[], issues: MalformationIssue[] } {
-        this.tokens = tokens;
         this.issues = [];
 
         // Skip whitespace tokens upfront for faster processing
@@ -68,7 +66,7 @@ export class ParameterChecker {
                             nextToken.type === TokenType.OPEN_BRACE || 
                             nextToken.type === TokenType.CLOSE_BRACE ||
                             i === nonWhitespaceTokens.length - 1) {
-                            this.addIssue(`Parameter '${token.value}' has no type (missing colon and type)`, WarningLevel.LEVEL_2);
+                            this.addIssue(WarningCode.PARAMETER_MISSING_TYPE, token.value);
                         }
                     }
                     break;
@@ -92,7 +90,7 @@ export class ParameterChecker {
                             nextToken.type === TokenType.OPEN_BRACE || 
                             nextToken.type === TokenType.CLOSE_BRACE ||
                             i === nonWhitespaceTokens.length - 1) {
-                            this.addIssue(`Parameter '${paramName}' has no type (missing colon and type)`, WarningLevel.LEVEL_2);
+                            this.addIssue(WarningCode.PARAMETER_MISSING_TYPE, paramName);
                         }
                     }
                     break;
@@ -139,11 +137,6 @@ export class ParameterChecker {
     private finishParameterFast(param: Partial<ParsedParameter>, parameters: ParsedParameter[], optionalDepth: number): void {
         if (!param.name) return;
         
-        // Check for empty type after colon
-        if (param.type === 'unknown' && this.parameterHasColonFast(param.name)) {
-            this.addIssue(`Parameter '${param.name}' has empty type after colon`, WarningLevel.LEVEL_2);
-        }
-        
         const finalParam: ParsedParameter = {
             name: param.name,
             type: param.type || 'unknown',
@@ -161,33 +154,16 @@ export class ParameterChecker {
     }
 
     /**
-     * Fast check if parameter has colon
+     * Add a parameter issue using warning code
+     * @param code - Warning code identifier
+     * @param args - Arguments for the message template
      */
-    private parameterHasColonFast(paramName: string): boolean {
-        const nonWhitespaceTokens = this.tokens.filter(token => token.type !== TokenType.WHITESPACE);
-        
-        for (let i = 0; i < nonWhitespaceTokens.length - 1; i++) {
-            const token = nonWhitespaceTokens[i];
-            const nextToken = nonWhitespaceTokens[i + 1];
-            
-            if ((token.type === TokenType.PARAMETER_NAME || token.type === TokenType.SPREAD) && 
-                token.value === paramName && nextToken.type === TokenType.COLON) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    /**
-     * Add a parameter issue
-     * @param message - Error message
-     * @param level - Warning level
-     */
-    private addIssue(message: string, level: WarningLevel): void {
+    private addIssue(code: WarningCode, ...args: unknown[]): void {
+        const definition = WARNING_DEFINITIONS[code];
         this.issues.push({
-            message,
-            level
+            id: code,
+            message: (definition.message as (...args: unknown[]) => string)(...args),
+            level: definition.level
         });
     }
 }

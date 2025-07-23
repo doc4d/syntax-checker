@@ -9,9 +9,90 @@ export enum WarningLevel {
 }
 
 /**
- * Malformation issue with warning level
+ * Warning codes for different types of issues
+ */
+export enum WarningCode {
+    // Structural issues (Level 1)
+    UNCLOSED_OPTIONAL_BLOCK = 'MAL001',
+    EXTRA_CLOSING_BRACE = 'MAL002',
+    EMPTY_PARAMETER_DOUBLE_SEMICOLON = 'MAL003',
+    EMPTY_PARAMETER_AT_START = 'MAL004',
+    UNEXPECTED_COLON_NO_PARAM = 'MAL005',
+    DOUBLE_COLON = 'MAL006',
+    UNEXPECTED_SEMICOLON_AFTER_COLON = 'MAL007',
+    UNEXPECTED_CLOSING_BRACE_AFTER_COLON = 'MAL008',
+    MALFORMED_PARAMETER_NAME = 'MAL009',
+    INVALID_TYPE_FORWARD_SLASH = 'MAL010',
+    MISSING_CLOSING_PARENTHESIS = 'MAL011',
+    
+    // Type issues (Level 2)
+    PARAMETER_EMPTY_TYPE_AFTER_COLON = 'PAR001',
+    PARAMETER_MISSING_TYPE = 'PAR002'
+}
+
+/**
+ * Warning definitions with messages and levels
+ */
+export const WARNING_DEFINITIONS = {
+    [WarningCode.UNCLOSED_OPTIONAL_BLOCK]: {
+        level: WarningLevel.LEVEL_1,
+        message: (braceCount: number) => `Unclosed optional block (missing ${braceCount} closing brace${braceCount > 1 ? 's' : ''})`
+    },
+    [WarningCode.EXTRA_CLOSING_BRACE]: {
+        level: WarningLevel.LEVEL_1,
+        message: () => 'Extra closing brace (unmatched optional block closure)'
+    },
+    [WarningCode.EMPTY_PARAMETER_DOUBLE_SEMICOLON]: {
+        level: WarningLevel.LEVEL_1,
+        message: () => 'Empty parameter found (double semicolon)'
+    },
+    [WarningCode.EMPTY_PARAMETER_AT_START]: {
+        level: WarningLevel.LEVEL_1,
+        message: () => 'Empty parameter found (semicolon at start)'
+    },
+    [WarningCode.UNEXPECTED_COLON_NO_PARAM]: {
+        level: WarningLevel.LEVEL_1,
+        message: () => 'Unexpected colon (missing parameter name)'
+    },
+    [WarningCode.DOUBLE_COLON]: {
+        level: WarningLevel.LEVEL_1,
+        message: () => 'Double colon found in parameter definition'
+    },
+    [WarningCode.UNEXPECTED_SEMICOLON_AFTER_COLON]: {
+        level: WarningLevel.LEVEL_1,
+        message: () => 'Unexpected semicolon after colon'
+    },
+    [WarningCode.UNEXPECTED_CLOSING_BRACE_AFTER_COLON]: {
+        level: WarningLevel.LEVEL_1,
+        message: () => 'Unexpected closing brace after colon'
+    },
+    [WarningCode.MALFORMED_PARAMETER_NAME]: {
+        level: WarningLevel.LEVEL_1,
+        message: (paramName: string) => `Parameter name '${paramName}' contains asterisks (likely malformed markup)`
+    },
+    [WarningCode.INVALID_TYPE_FORWARD_SLASH]: {
+        level: WarningLevel.LEVEL_1,
+        message: (typeName: string) => `Type definition '${typeName}' contains invalid forward slash characters`
+    },
+    [WarningCode.MISSING_CLOSING_PARENTHESIS]: {
+        level: WarningLevel.LEVEL_1,
+        message: () => 'Missing closing parenthesis'
+    },
+    [WarningCode.PARAMETER_EMPTY_TYPE_AFTER_COLON]: {
+        level: WarningLevel.LEVEL_2,
+        message: () => 'Parameter has empty type after colon'
+    },
+    [WarningCode.PARAMETER_MISSING_TYPE]: {
+        level: WarningLevel.LEVEL_2,
+        message: (paramName: string) => `Parameter '${paramName}' has no type (missing colon and type)`
+    }
+} as const;
+
+/**
+ * Malformation issue with warning level and unique identifier
  */
 export interface MalformationIssue {
+    id: string;
     message: string;
     level: WarningLevel;
 }
