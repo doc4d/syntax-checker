@@ -11,19 +11,26 @@ export default defineConfig({
     // Global test utilities
     globals: true,
     
-    // Reporter
-    reporter: ['verbose', 'json'],
-    
     // Coverage
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'json'],
+      include: ['src/**/*.ts'],
       exclude: [
         'node_modules/',
-        'test/',
+        'tests/',
         '**/*.config.js',
-        '**/*.test.js'
-      ]
+        '**/*.test.js',
+        '**/*.d.ts'
+      ],
+      thresholds: {
+        global: {
+          branches: 50,
+          functions: 50,
+          lines: 50,
+          statements: 50
+        }
+      }
     },
     
     // Timeout

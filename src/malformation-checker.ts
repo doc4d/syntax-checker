@@ -110,6 +110,52 @@ export class MalformationChecker {
                 this.addIssue(`Type definition '${token.value}' contains invalid forward slash characters`, WarningLevel.LEVEL_1);
             }
         }
+
+        // Check for empty parameters and unexpected tokens
+        this.checkEmptyParameters(nonWhitespaceTokens);
+        this.checkUnexpectedTokens(nonWhitespaceTokens);
+    }
+
+    /**
+     * Check for empty parameter patterns
+     */
+    private checkEmptyParameters(tokens: Token[]): void {
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            const nextToken = tokens[i + 1];
+
+            // Check for semicolon at start (empty parameter at beginning)
+            if (i === 0 && token.type === TokenType.SEMICOLON) {
+                this.addIssue('Empty parameter found (semicolon at start)', WarningLevel.LEVEL_1);
+            }
+
+            // Check for double semicolon (empty parameter between semicolons)
+            if (token.type === TokenType.SEMICOLON && nextToken && nextToken.type === TokenType.SEMICOLON) {
+                this.addIssue('Empty parameter found (double semicolon)', WarningLevel.LEVEL_1);
+            }
+        }
+    }
+
+    /**
+     * Check for unexpected token sequences
+     */
+    private checkUnexpectedTokens(tokens: Token[]): void {
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            const nextToken = tokens[i + 1];
+
+            if (token.type === TokenType.COLON && nextToken) {
+                // Check for unexpected semicolon after colon
+                if (nextToken.type === TokenType.SEMICOLON) {
+                    this.addIssue('Unexpected semicolon after colon', WarningLevel.LEVEL_1);
+                }
+
+                // Check for unexpected closing brace after colon
+                if (nextToken.type === TokenType.CLOSE_BRACE) {
+                    this.addIssue('Unexpected closing brace after colon', WarningLevel.LEVEL_1);
+                }
+            }
+        }
     }
 
     /**
