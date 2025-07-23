@@ -107,8 +107,9 @@ describe('MalformationChecker', () => {
             const issues = checker.checkMalformations(tokens);
             
             expect(issues.some(issue => 
-                issue.message.includes('Type definition') && 
-                issue.message.includes('invalid forward slash characters')
+                issue.id === 'MAL013' && 
+                issue.message.includes('Type/Invalid/Slash') &&
+                issue.message.includes('invalid format')
             )).toBe(true);
         });
 

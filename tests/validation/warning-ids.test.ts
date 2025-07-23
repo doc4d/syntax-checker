@@ -52,8 +52,9 @@ describe('Warning ID System', () => {
             expect(issues.some(issue => issue.id === WarningCode.DOUBLE_COLON)).toBe(true);
         });
 
-        test('should assign MALFORMED_PARAMETER_NAME ID for parameter names with asterisks', () => {
+        test('should assign NON_ECMA_PARAMETER_NAME ID for parameter names with asterisks', () => {
             // Create a token manually since the tokenizer splits asterisks
+            // This test shows that ECMA compliance check catches asterisks (replacing old MALFORMED_PARAMETER_NAME)
             const tokens = [
                 { type: TokenType.PARAMETER_NAME, value: 'param*name', position: 0 },
                 { type: TokenType.COLON, value: ':', position: 10 },
@@ -61,7 +62,65 @@ describe('Warning ID System', () => {
             ];
             const issues = malformationChecker.checkMalformations(tokens);
             
-            expect(issues.some(issue => issue.id === WarningCode.MALFORMED_PARAMETER_NAME)).toBe(true);
+            expect(issues.some(issue => issue.id === WarningCode.NON_ECMA_PARAMETER_NAME)).toBe(true);
+        });
+
+        test('should assign NON_ECMA_PARAMETER_NAME ID for non-ECMA compliant parameter names', () => {
+            const tokens = [
+                { type: TokenType.PARAMETER_NAME, value: '123invalid', position: 0 },
+                { type: TokenType.COLON, value: ':', position: 10 },
+                { type: TokenType.TYPE, value: 'Type', position: 12 }
+            ];
+            const issues = malformationChecker.checkMalformations(tokens);
+            
+            expect(issues.some(issue => issue.id === WarningCode.NON_ECMA_PARAMETER_NAME)).toBe(true);
+        });
+
+        test('should NOT flag reserved words as parameter names (reserved word checking disabled)', () => {
+            const tokens = [
+                { type: TokenType.PARAMETER_NAME, value: 'function', position: 0 },
+                { type: TokenType.COLON, value: ':', position: 8 },
+                { type: TokenType.TYPE, value: 'Type', position: 10 }
+            ];
+            const issues = malformationChecker.checkMalformations(tokens);
+            
+            // Should not flag reserved words since reserved word checking is disabled
+            expect(issues.some(issue => issue.id === WarningCode.NON_ECMA_PARAMETER_NAME)).toBe(false);
+        });
+
+        test('should assign INVALID_TYPE_FORMAT ID for invalid type formats', () => {
+            const tokens = [
+                { type: TokenType.PARAMETER_NAME, value: 'param', position: 0 },
+                { type: TokenType.COLON, value: ':', position: 5 },
+                { type: TokenType.TYPE, value: 'Invalid123@Type', position: 7 }
+            ];
+            const issues = malformationChecker.checkMalformations(tokens);
+            
+            expect(issues.some(issue => issue.id === WarningCode.INVALID_TYPE_FORMAT)).toBe(true);
+        });
+
+        test('should NOT flag valid ECMA parameter names', () => {
+            const tokens = [
+                { type: TokenType.PARAMETER_NAME, value: 'validParam', position: 0 },
+                { type: TokenType.PARAMETER_NAME, value: '_underscore', position: 11 },
+                { type: TokenType.PARAMETER_NAME, value: '$dollar', position: 23 },
+                { type: TokenType.PARAMETER_NAME, value: 'param123', position: 31 }
+            ];
+            const issues = malformationChecker.checkMalformations(tokens);
+            
+            expect(issues.some(issue => issue.id === WarningCode.NON_ECMA_PARAMETER_NAME)).toBe(false);
+        });
+
+        test('should NOT flag valid type formats', () => {
+            const tokens = [
+                { type: TokenType.TYPE, value: 'String', position: 0 },
+                { type: TokenType.TYPE, value: '4D.Collection', position: 7 },
+                { type: TokenType.TYPE, value: 'cs.MyClass', position: 20 },
+                { type: TokenType.TYPE, value: 'Array<Object>', position: 31 }
+            ];
+            const issues = malformationChecker.checkMalformations(tokens);
+            
+            expect(issues.some(issue => issue.id === WarningCode.INVALID_TYPE_FORMAT)).toBe(false);
         });
     });
 

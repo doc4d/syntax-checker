@@ -8,6 +8,8 @@ export enum TokenType {
     SEMICOLON = 'semicolon',
     OPEN_BRACE = 'open_brace',
     CLOSE_BRACE = 'close_brace',
+    OPEN_PAREN = 'open_paren',
+    CLOSE_PAREN = 'close_paren',
     OPERATOR = 'operator',
     WHITESPACE = 'whitespace',
     SPREAD = 'spread',
@@ -109,6 +111,14 @@ export class Tokenizer {
                 this.addToken(TokenType.CLOSE_BRACE, char, this.position);
                 this.position++;
                 break;
+            case '(':
+                this.addToken(TokenType.OPEN_PAREN, char, this.position);
+                this.position++;
+                break;
+            case ')':
+                this.addToken(TokenType.CLOSE_PAREN, char, this.position);
+                this.position++;
+                break;
             case '*':
                 this.addToken(TokenType.OPERATOR, char, this.position);
                 this.position++;
@@ -199,6 +209,7 @@ export class Tokenizer {
                 return TokenType.TYPE;
             case TokenType.SEMICOLON:
             case TokenType.OPEN_BRACE:
+            case TokenType.OPEN_PAREN:
                 return TokenType.PARAMETER_NAME;
             case TokenType.PARAMETER_NAME:
             case TokenType.SPREAD:

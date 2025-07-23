@@ -21,9 +21,9 @@ export enum WarningCode {
     DOUBLE_COLON = 'MAL006',
     UNEXPECTED_SEMICOLON_AFTER_COLON = 'MAL007',
     UNEXPECTED_CLOSING_BRACE_AFTER_COLON = 'MAL008',
-    MALFORMED_PARAMETER_NAME = 'MAL009',
-    INVALID_TYPE_FORWARD_SLASH = 'MAL010',
     MISSING_CLOSING_PARENTHESIS = 'MAL011',
+    NON_ECMA_PARAMETER_NAME = 'MAL012',
+    INVALID_TYPE_FORMAT = 'MAL013',
     
     // Type issues (Level 2)
     PARAMETER_EMPTY_TYPE_AFTER_COLON = 'PAR001',
@@ -66,17 +66,17 @@ export const WARNING_DEFINITIONS = {
         level: WarningLevel.LEVEL_1,
         message: () => 'Unexpected closing brace after colon'
     },
-    [WarningCode.MALFORMED_PARAMETER_NAME]: {
-        level: WarningLevel.LEVEL_1,
-        message: (paramName: string) => `Parameter name '${paramName}' contains asterisks (likely malformed markup)`
-    },
-    [WarningCode.INVALID_TYPE_FORWARD_SLASH]: {
-        level: WarningLevel.LEVEL_1,
-        message: (typeName: string) => `Type definition '${typeName}' contains invalid forward slash characters`
-    },
     [WarningCode.MISSING_CLOSING_PARENTHESIS]: {
         level: WarningLevel.LEVEL_1,
         message: () => 'Missing closing parenthesis'
+    },
+    [WarningCode.NON_ECMA_PARAMETER_NAME]: {
+        level: WarningLevel.LEVEL_1,
+        message: (paramName: string) => `Parameter name '${paramName}' is not ECMA-compliant (must be valid JavaScript identifier)`
+    },
+    [WarningCode.INVALID_TYPE_FORMAT]: {
+        level: WarningLevel.LEVEL_1,
+        message: (typeName: string) => `Type '${typeName}' has invalid format (must be letters only, or start with '4D.' or 'cs.' followed by valid identifier)`
     },
     [WarningCode.PARAMETER_EMPTY_TYPE_AFTER_COLON]: {
         level: WarningLevel.LEVEL_2,
