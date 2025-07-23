@@ -30,6 +30,29 @@ export class Tokenizer {
     private input: string = '';
     private position: number = 0;
     private tokens: Token[] = [];
+    private lastContextToken: TokenType | null = null;
+    
+    // Pre-computed lookup table for identifier characters (ASCII 0-127)
+    private static readonly IDENTIFIER_CHARS = (() => {
+        const lookup = new Array(128).fill(false);
+        // 0-9
+        for (let i = 48; i <= 57; i++) lookup[i] = true;
+        // A-Z
+        for (let i = 65; i <= 90; i++) lookup[i] = true;
+        // a-z  
+        for (let i = 97; i <= 122; i++) lookup[i] = true;
+        // Special chars
+        lookup[95] = true;  // _
+        lookup[45] = true;  // -
+        lookup[36] = true;  // $
+        lookup[46] = true;  // .
+        lookup[47] = true;  // /
+        lookup[91] = true;  // [
+        lookup[93] = true;  // ]
+        lookup[60] = true;  // <
+        lookup[62] = true;  // >
+        return lookup;
+    })();
 
     /**
      * Tokenize a parameter string
@@ -40,6 +63,7 @@ export class Tokenizer {
         this.input = input;
         this.position = 0;
         this.tokens = [];
+        this.lastContextToken = null;
 
         while (this.position < this.input.length) {
             this.scanToken();
@@ -62,11 +86,7 @@ export class Tokenizer {
 
         // Handle escaped asterisks
         if (char === '\\' && this.position + 1 < this.input.length && this.input[this.position + 1] === '*') {
-            this.tokens.push({
-                type: TokenType.ESCAPED_ASTERISK,
-                value: '\\*',
-                position: this.position
-            });
+            this.addToken(TokenType.ESCAPED_ASTERISK, '\\*', this.position);
             this.position += 2;
             return;
         }
@@ -74,43 +94,23 @@ export class Tokenizer {
         // Handle single character tokens
         switch (char) {
             case ':':
-                this.tokens.push({
-                    type: TokenType.COLON,
-                    value: char,
-                    position: this.position
-                });
+                this.addToken(TokenType.COLON, char, this.position);
                 this.position++;
                 break;
             case ';':
-                this.tokens.push({
-                    type: TokenType.SEMICOLON,
-                    value: char,
-                    position: this.position
-                });
+                this.addToken(TokenType.SEMICOLON, char, this.position);
                 this.position++;
                 break;
             case '{':
-                this.tokens.push({
-                    type: TokenType.OPEN_BRACE,
-                    value: char,
-                    position: this.position
-                });
+                this.addToken(TokenType.OPEN_BRACE, char, this.position);
                 this.position++;
                 break;
             case '}':
-                this.tokens.push({
-                    type: TokenType.CLOSE_BRACE,
-                    value: char,
-                    position: this.position
-                });
+                this.addToken(TokenType.CLOSE_BRACE, char, this.position);
                 this.position++;
                 break;
             case '*':
-                this.tokens.push({
-                    type: TokenType.OPERATOR,
-                    value: char,
-                    position: this.position
-                });
+                this.addToken(TokenType.OPERATOR, char, this.position);
                 this.position++;
                 break;
             default:
@@ -118,6 +118,20 @@ export class Tokenizer {
                 this.scanIdentifier();
                 break;
         }
+    }
+
+    /**
+     * Centralized token creation and context tracking
+     */
+    private addToken(type: TokenType, value: string, position: number): void {
+        this.tokens.push({
+            type,
+            value,
+            position
+        });
+        
+        // Update context after token is added
+        this.lastContextToken = type;
     }
 
     /**
@@ -139,11 +153,7 @@ export class Tokenizer {
             }
             
             const value = this.input.substring(start, this.position);
-            this.tokens.push({
-                type: TokenType.SPREAD,
-                value,
-                position: start
-            });
+            this.addToken(TokenType.SPREAD, value, start);
             return;
         }
 
@@ -155,13 +165,9 @@ export class Tokenizer {
         if (this.position > start) {
             const value = this.input.substring(start, this.position);
             
-            // Simple context-based type determination
-            const tokenType = this.determineIdentifierType();
-            this.tokens.push({
-                type: tokenType,
-                value,
-                position: start
-            });
+            // Fast context-based type determination using cached context
+            const tokenType = this.determineIdentifierTypeFast();
+            this.addToken(tokenType, value, start);
         } else {
             // If no valid identifier characters were found, skip this character to avoid infinite loop
             this.position++;
@@ -169,41 +175,37 @@ export class Tokenizer {
     }
 
     /**
-     * Fast identifier character check
+     * Optimized identifier character check using lookup table
      */
     private isIdentifierChar(char: string): boolean {
         const code = char.charCodeAt(0);
-        return (code >= 48 && code <= 57) ||   // 0-9
-               (code >= 65 && code <= 90) ||   // A-Z
-               (code >= 97 && code <= 122) ||  // a-z
-               char === '_' || char === '-' || char === '$' || char === '.' || char === '/' || char === '[' || char === ']' || 
-               char === '<' || char === '>' || code > 127; // Unicode
+        
+        // Fast lookup for ASCII characters (covers 99% of cases)
+        if (code < 128) {
+            return Tokenizer.IDENTIFIER_CHARS[code];
+        }
+        
+        // Unicode fallback (slower but necessary for international chars)
+        return code > 127;
     }
 
     /**
-     * Fast type determination based on previous token
+     * Fast type determination using cached context (O(1) instead of O(n))
      */
-    private determineIdentifierType(): TokenType {
-        // Look at the last token to determine context
-        for (let i = this.tokens.length - 1; i >= 0; i--) {
-            const token = this.tokens[i];
-            
-            switch (token.type) {
-                case TokenType.COLON:
-                    return TokenType.TYPE;
-                case TokenType.SEMICOLON:
-                case TokenType.OPEN_BRACE:
-                    return TokenType.PARAMETER_NAME;
-                case TokenType.PARAMETER_NAME:
-                case TokenType.SPREAD:
-                case TokenType.TYPE:
-                    return TokenType.PARAMETER_NAME;
-                default:
-                    continue;
-            }
+    private determineIdentifierTypeFast(): TokenType {
+        // Use cached context for instant determination
+        switch (this.lastContextToken) {
+            case TokenType.COLON:
+                return TokenType.TYPE;
+            case TokenType.SEMICOLON:
+            case TokenType.OPEN_BRACE:
+                return TokenType.PARAMETER_NAME;
+            case TokenType.PARAMETER_NAME:
+            case TokenType.SPREAD:
+            case TokenType.TYPE:
+                return TokenType.PARAMETER_NAME;
+            default:
+                return TokenType.PARAMETER_NAME;
         }
-        
-        // Default to parameter name if no context
-        return TokenType.PARAMETER_NAME;
     }
 }
