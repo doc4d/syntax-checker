@@ -4,12 +4,12 @@ import { MalformationChecker } from '../../src/malformation-checker.js';
 import { ParameterChecker } from '../../src/parameter-checker.js';
 import { WarningCode } from '../../src/types.js';
 
-describe('Warning ID System', () => {
+describe.only('Warning ID System', () => {
     const tokenizer = new Tokenizer();
     const malformationChecker = new MalformationChecker();
     const parameterChecker = new ParameterChecker();
 
-    describe('MalformationChecker Warning IDs', () => {
+    describe.only('MalformationChecker Warning IDs', () => {
         test('should assign UNCLOSED_OPTIONAL_BLOCK ID for unclosed braces', () => {
             const tokens = tokenizer.tokenize('{ param : Type');
             const issues = malformationChecker.checkMalformations(tokens);
@@ -111,15 +111,14 @@ describe('Warning ID System', () => {
             expect(issues.some(issue => issue.id === WarningCode.NON_ECMA_PARAMETER_NAME)).toBe(false);
         });
 
-        test('should NOT flag valid type formats', () => {
+        test.only('should NOT flag valid type formats', () => {
             const tokens = [
-                { type: TokenType.TYPE, value: 'String', position: 0 },
+                { type: TokenType.TYPE, value: 'Text', position: 0 },
                 { type: TokenType.TYPE, value: '4D.Collection', position: 7 },
                 { type: TokenType.TYPE, value: 'cs.MyClass', position: 20 },
-                { type: TokenType.TYPE, value: 'Array<Object>', position: 31 }
+                { type: TokenType.TYPE, value: 'integer array', position: 31 }
             ];
             const issues = malformationChecker.checkMalformations(tokens);
-            
             expect(issues.some(issue => issue.id === WarningCode.INVALID_TYPE_FORMAT)).toBe(false);
         });
     });

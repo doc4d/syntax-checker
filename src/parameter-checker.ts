@@ -16,7 +16,7 @@ export class ParameterChecker {
         this.issues = [];
 
         // Since whitespace is not tokenized, we can work directly with the tokens
-        const parameters = this.buildParametersFast(tokens);
+        const parameters = this.buildParameters(tokens);
         
         return {
             parameters,
@@ -28,7 +28,7 @@ export class ParameterChecker {
      * Fast parameter building from tokens
      * @returns Array of parsed parameters
      */
-    private buildParametersFast(nonWhitespaceTokens: Token[]): ParsedParameter[] {
+    private buildParameters(nonWhitespaceTokens: Token[]): ParsedParameter[] {
         const parameters: ParsedParameter[] = [];
         let currentParam: Partial<ParsedParameter> | null = null;
         let optionalDepth = 0;
@@ -49,7 +49,7 @@ export class ParameterChecker {
                 case TokenType.PARAMETER_NAME:
                     // Start new parameter
                     if (currentParam && currentParam.name) {
-                        this.finishParameterFast(currentParam, parameters, optionalDepth);
+                        this.finishParameter(currentParam, parameters, optionalDepth);
                     }
                     
                     currentParam = {
@@ -74,7 +74,7 @@ export class ParameterChecker {
                     const paramName = token.value.startsWith('...') ? token.value.slice(3) : token.value;
                     
                     if (currentParam && currentParam.name) {
-                        this.finishParameterFast(currentParam, parameters, optionalDepth);
+                        this.finishParameter(currentParam, parameters, optionalDepth);
                     }
                     
                     currentParam = {
@@ -105,12 +105,14 @@ export class ParameterChecker {
                     
                 case TokenType.SEMICOLON:
                     if (currentParam && currentParam.name) {
-                        this.finishParameterFast(currentParam, parameters, optionalDepth);
+                        this.finishParameter(currentParam, parameters, optionalDepth);
                         currentParam = null;
                     }
                     break;
                     
                 case TokenType.OPERATOR:
+                case TokenType.GT:
+                case TokenType.LT:
                 case TokenType.ESCAPED_ASTERISK:
                     parameters.push({
                         name: token.value,
@@ -124,7 +126,7 @@ export class ParameterChecker {
         
         // Finish last parameter if exists
         if (currentParam && currentParam.name) {
-            this.finishParameterFast(currentParam, parameters, optionalDepth);
+            this.finishParameter(currentParam, parameters, optionalDepth);
         }
         
         return parameters;
@@ -133,7 +135,7 @@ export class ParameterChecker {
     /**
      * Fast parameter finishing
      */
-    private finishParameterFast(param: Partial<ParsedParameter>, parameters: ParsedParameter[], optionalDepth: number): void {
+    private finishParameter(param: Partial<ParsedParameter>, parameters: ParsedParameter[], optionalDepth: number): void {
         if (!param.name) return;
         
         const finalParam: ParsedParameter = {

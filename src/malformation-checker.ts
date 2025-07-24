@@ -1,6 +1,15 @@
 import { Token, TokenType, Tokenizer } from './tokenizer.js';
 import { WarningCode, WARNING_DEFINITIONS, MalformationIssue } from './types.js';
 
+const validTypes = [
+    'object', 'text', 'real', 'any', 'integer', 'collection', 'number', 'date', 'time',
+    'boolean', 'picture', 'number', 'expression', 'blob', 'variant', 'string', 'object',
+    'table', 'expression', 'operator', 'pointer', '4d.session', 'text array', 'field',
+    'variable', 'object array', 'array', 'boolean array', 'integer array', 'real array',
+    'pointer array', 'null'
+];
+
+
 /**
  * Malformation checker for tokens
  */
@@ -61,7 +70,7 @@ export class MalformationChecker {
                 if (nextToken && nextToken.type === TokenType.SEMICOLON) {
                     this.addIssue(WarningCode.EMPTY_PARAMETER_DOUBLE_SEMICOLON);
                 }
-                
+
                 // Check for semicolon at start
                 if (!prevToken) {
                     this.addIssue(WarningCode.EMPTY_PARAMETER_AT_START);
@@ -84,7 +93,7 @@ export class MalformationChecker {
                 if (!prevToken || (prevToken.type !== TokenType.PARAMETER_NAME && prevToken.type !== TokenType.SPREAD)) {
                     this.addIssue(WarningCode.UNEXPECTED_COLON_NO_PARAM);
                 }
-                
+
                 // Check for double colon
                 if (nextToken && nextToken.type === TokenType.COLON) {
                     this.addIssue(WarningCode.DOUBLE_COLON);
@@ -99,7 +108,7 @@ export class MalformationChecker {
                 if (nextToken && nextToken.type === TokenType.CLOSE_BRACE) {
                     this.addIssue(WarningCode.UNEXPECTED_CLOSING_BRACE_AFTER_COLON);
                 }
-                
+
                 // Check for colon at end of parameter list (empty type)
                 if (!nextToken) {
                     this.addIssue(WarningCode.PARAMETER_EMPTY_TYPE_AFTER_COLON);
@@ -120,10 +129,10 @@ export class MalformationChecker {
                     this.addIssue(WarningCode.NON_ECMA_PARAMETER_NAME, token.value);
                 }
             }
-            
+
             // Check for invalid characters and format in type definitions
             if (token.type === TokenType.TYPE) {
-                
+
                 // Check type format compliance
                 if (!this.isValidTypeFormat(token.value)) {
                     this.addIssue(WarningCode.INVALID_TYPE_FORMAT, token.value);
@@ -141,7 +150,7 @@ export class MalformationChecker {
     private isEcmaCompliantIdentifier(name: string): boolean {
         // Basic check: must start with letter, $, or _, followed by letters, digits, $, or _
         const ecmaIdentifierRegex = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
-        
+
         return ecmaIdentifierRegex.test(name);
     }
 
@@ -156,21 +165,24 @@ export class MalformationChecker {
         if (lettersOnlyRegex.test(typeName)) {
             return true;
         }
-        
+
         // Pattern 2: 4D. or cs. prefix followed by valid identifier
-        const prefixedTypeRegex = /^(4D\.|cs\.)([a-zA-Z_$][a-zA-Z0-9_$]*)$/;
+        const prefixedTypeRegex = /^(4D|cs)(\.([a-zA-Z_$][a-zA-Z0-9_$]*)){1,2}$/;
         const match = typeName.match(prefixedTypeRegex);
         if (match) {
-            const identifier = match[2];
+            const identifier = match[2].slice(1);
             return this.isEcmaCompliantIdentifier(identifier);
         }
-        
-        // Pattern 3: Allow common generic types like Array<Type>, Object<Key, Value>, etc.
-        const genericTypeRegex = /^[a-zA-Z]+(<[a-zA-Z0-9_$,\s.]+>)?(\[\])?$/;
-        if (genericTypeRegex.test(typeName)) {
+
+
+        // Convert both the input type and valid types to lowercase for case-insensitive comparison
+        const lowerTypeName = typeName.toLowerCase();
+
+        if (validTypes.includes(lowerTypeName)) {
             return true;
         }
-        
+
+
         return false;
     }
 
@@ -181,16 +193,16 @@ export class MalformationChecker {
      */
     checkSyntaxStructure(syntaxString: string): { paramString: string | null, paramEnd: number, issues: MalformationIssue[] } {
         const structuralIssues: MalformationIssue[] = [];
-        
+
         // Tokenize the entire syntax string to use token-based parsing
         const tokenizer = new Tokenizer();
         const tokens = tokenizer.tokenize(syntaxString);
-        
+
         // Find the parameters section between parentheses using tokens
         let paramStartIndex = -1;
         let paramEndIndex = -1;
         let parenDepth = 0;
-        
+
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i];
             if (token.type === TokenType.OPEN_PAREN) {
@@ -211,7 +223,7 @@ export class MalformationChecker {
         if (paramStartIndex === -1) {
             return { paramString: null, paramEnd: -1, issues: structuralIssues };
         }
-        
+
         // If opening parenthesis found but no closing parenthesis, that's an error
         if (paramEndIndex === -1) {
             structuralIssues.push({
@@ -225,15 +237,15 @@ export class MalformationChecker {
         // Extract parameter string from original syntax string to preserve whitespace
         const openParenToken = tokens.find(t => t.type === TokenType.OPEN_PAREN);
         const closeParenToken = tokens[paramEndIndex];
-        
+
         if (!openParenToken || !closeParenToken) {
             return { paramString: null, paramEnd: -1, issues: structuralIssues };
         }
-        
+
         const paramStart = openParenToken.position + 1;
         const paramEnd = closeParenToken.position;
         const paramString = syntaxString.substring(paramStart, paramEnd).trim();
-        
+
         return { paramString, paramEnd, issues: structuralIssues };
     }
 
