@@ -17,7 +17,7 @@ export class ParameterChecker {
 
         // Since whitespace is not tokenized, we can work directly with the tokens
         const parameters = this.buildParameters(tokens);
-        
+
         return {
             parameters,
             issues: this.issues
@@ -32,68 +32,68 @@ export class ParameterChecker {
         const parameters: ParsedParameter[] = [];
         let currentParam: Partial<ParsedParameter> | null = null;
         let optionalDepth = 0;
-        
+
         for (let i = 0; i < nonWhitespaceTokens.length; i++) {
             const token = nonWhitespaceTokens[i];
             const nextToken = nonWhitespaceTokens[i + 1];
-            
+
             switch (token.type) {
                 case TokenType.OPEN_BRACE:
                     optionalDepth++;
                     break;
-                    
+
                 case TokenType.CLOSE_BRACE:
                     optionalDepth--;
                     break;
-                    
+
                 case TokenType.PARAMETER_NAME:
                     // Start new parameter
                     if (currentParam && currentParam.name) {
                         this.finishParameter(currentParam, parameters, optionalDepth);
                     }
-                    
+
                     currentParam = {
                         name: token.value,
                         type: 'unknown',
                         optional: optionalDepth > 0,
                         spread: false
                     };
-                    
+
                     // Quick check for missing type
                     if (nextToken && nextToken.type !== TokenType.COLON) {
-                        if (nextToken.type === TokenType.SEMICOLON || 
-                            nextToken.type === TokenType.OPEN_BRACE || 
+                        if (nextToken.type === TokenType.SEMICOLON ||
+                            nextToken.type === TokenType.OPEN_BRACE ||
                             nextToken.type === TokenType.CLOSE_BRACE ||
                             i === nonWhitespaceTokens.length - 1) {
                             this.addIssue(WarningCode.PARAMETER_MISSING_TYPE, token.value);
                         }
                     }
                     break;
-                    
+
                 case TokenType.SPREAD:
                     const paramName = token.value.startsWith('...') ? token.value.slice(3) : token.value;
-                    
+
                     if (currentParam && currentParam.name) {
                         this.finishParameter(currentParam, parameters, optionalDepth);
                     }
-                    
+
                     currentParam = {
                         name: paramName,
                         type: 'unknown',
                         optional: optionalDepth > 0,
                         spread: true
                     };
-                    
+
                     if (nextToken && nextToken.type !== TokenType.COLON) {
-                        if (nextToken.type === TokenType.SEMICOLON || 
-                            nextToken.type === TokenType.OPEN_BRACE || 
+                        if (nextToken.type === TokenType.SEMICOLON ||
+                            nextToken.type === TokenType.OPEN_BRACE ||
                             nextToken.type === TokenType.CLOSE_BRACE ||
                             i === nonWhitespaceTokens.length - 1) {
                             this.addIssue(WarningCode.PARAMETER_MISSING_TYPE, paramName);
                         }
                     }
                     break;
-                    
+
                 case TokenType.TYPE:
                     if (currentParam) {
                         const prevToken = nonWhitespaceTokens[i - 1];
@@ -102,14 +102,14 @@ export class ParameterChecker {
                         }
                     }
                     break;
-                    
+
                 case TokenType.SEMICOLON:
                     if (currentParam && currentParam.name) {
                         this.finishParameter(currentParam, parameters, optionalDepth);
                         currentParam = null;
                     }
                     break;
-                    
+
                 case TokenType.OPERATOR:
                 case TokenType.GT:
                 case TokenType.LT:
@@ -123,12 +123,12 @@ export class ParameterChecker {
                     break;
             }
         }
-        
+
         // Finish last parameter if exists
         if (currentParam && currentParam.name) {
             this.finishParameter(currentParam, parameters, optionalDepth);
         }
-        
+
         return parameters;
     }
 
@@ -137,18 +137,18 @@ export class ParameterChecker {
      */
     private finishParameter(param: Partial<ParsedParameter>, parameters: ParsedParameter[], optionalDepth: number): void {
         if (!param.name) return;
-        
+
         const finalParam: ParsedParameter = {
             name: param.name,
             type: param.type || 'unknown',
             optional: param.optional || optionalDepth > 0,
             spread: param.spread || false
         };
-        
+
         // Only add valid parameters
-        if (finalParam.name && 
-            finalParam.name !== '}' && 
-            finalParam.name !== '{' && 
+        if (finalParam.name &&
+            finalParam.name !== '}' &&
+            finalParam.name !== '{' &&
             finalParam.name !== ';') {
             parameters.push(finalParam);
         }

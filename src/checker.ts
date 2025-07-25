@@ -1,10 +1,10 @@
-import { Preprocessing } from "@4dsas/doc_preprocessing/lib/preprocessor.js";
-import { Settings, SETTINGS_KEY } from "@4dsas/doc_preprocessing/lib/settings.js";
-import { Parser, ParsedVariant, WarningLevel } from "./parser.js";
-import { Direction } from "./types.js";
+import { Preprocessing } from '@4dsas/doc_preprocessing/lib/preprocessor.js';
+import { Settings, SETTINGS_KEY } from '@4dsas/doc_preprocessing/lib/settings.js';
+import { Parser, ParsedVariant, WarningLevel } from './parser.js';
+import { Direction } from './types.js';
 
 // Re-export WarningLevel for convenience
-export { WarningLevel } from "./parser.js";
+export { WarningLevel } from './parser.js';
 
 
 /**
@@ -25,7 +25,6 @@ interface DocumentationParameter {
 interface RawCommandObject {
     Syntax?: string;
     Params?: string[][];
-    [key: string]: any;
 }
 
 /**
@@ -34,7 +33,6 @@ interface RawCommandObject {
 interface CommandObject {
     Syntax?: string;
     Params?: DocumentationParameter[];
-    [key: string]: any;
 }
 
 
@@ -75,10 +73,10 @@ export class SyntaxChecker {
      * @returns Syntax object
      */
     async getSyntax(inFolder: string): Promise<any> {
-        const info = new Settings()
-        info.set(SETTINGS_KEY.PATH, inFolder + "/")
-        info.set(SETTINGS_KEY.CONFIG, "preprocessing.conf")
-        info.set(SETTINGS_KEY.EXCLUDE_LIST, ["ViewPro"])
+        const info = new Settings();
+        info.set(SETTINGS_KEY.PATH, inFolder + '/');
+        info.set(SETTINGS_KEY.CONFIG, 'preprocessing.conf');
+        info.set(SETTINGS_KEY.EXCLUDE_LIST, ['ViewPro']);
         info.set(SETTINGS_KEY.VERBOSE, false);
         let processor = new Preprocessing(info);
         await processor.collect();
@@ -92,10 +90,10 @@ export class SyntaxChecker {
      * @returns ViewPro syntax object
      */
     async getSyntaxViewPro(inFolder: string): Promise<any> {
-        const info = new Settings()
-        info.set(SETTINGS_KEY.PATH, inFolder + "/ViewPro/")
-        info.set(SETTINGS_KEY.CONFIG, "preprocessing.conf")
-        info.set(SETTINGS_KEY.EXCLUDE_LIST, [])
+        const info = new Settings();
+        info.set(SETTINGS_KEY.PATH, inFolder + '/ViewPro/');
+        info.set(SETTINGS_KEY.CONFIG, 'preprocessing.conf');
+        info.set(SETTINGS_KEY.EXCLUDE_LIST, []);
         info.set(SETTINGS_KEY.VERBOSE, false);
         let processor = new Preprocessing(info);
         await processor.collect();
@@ -269,7 +267,7 @@ export class SyntaxChecker {
 
             // Split actual type by commas, forward slashes, or "or" and check if parsed type is in the list
             const actualTypeList = actualTypeLower
-                .split(/[,\/]|\s+or\s+/)
+                .split(/[,/]|\s+or\s+/)
                 .map(t => t.trim())
                 .filter(t => t.length > 0);
 
@@ -348,12 +346,12 @@ export class SyntaxChecker {
     outputVariantAnalysis(variant: ParsedVariant, index: number, params: DocumentationParameter[], actualParamNames: string[]): void {
         console.log(`\nVariant ${index + 1} analysis:`);
         const parsedParamNames = variant.parameters.map(p => p.name.toLowerCase());
-        console.log(`Parsed parameter names:`, parsedParamNames);
+        console.log('Parsed parameter names:', parsedParamNames);
 
         // Check for syntax malformation at current warning level
         const filteredMalformationIssues = this.getFilteredMalformationIssues(variant);
         if (filteredMalformationIssues.length > 0) {
-            console.log(`⚠️  Syntax malformation detected:`);
+            console.log('⚠️  Syntax malformation detected:');
             filteredMalformationIssues.forEach(issue => {
                 const levelStr = issue.level === WarningLevel.LEVEL_1 ? 'L1' : 'L2';
                 console.log(`   - [${levelStr}] ${issue.message}`);
@@ -367,14 +365,14 @@ export class SyntaxChecker {
         }
 
         if (typeMismatches.length > 0) {
-            console.log(`⚠️  Type mismatches:`);
+            console.log('⚠️  Type mismatches:');
             typeMismatches.forEach(mismatch => {
                 console.log(`   - ${mismatch.name}: syntax declares '${mismatch.syntaxType}' but params declare '${mismatch.paramsType}'`);
             });
         }
 
         if (returnTypeMismatches.length > 0) {
-            console.log(`⚠️  Return type mismatches:`);
+            console.log('⚠️  Return type mismatches:');
             returnTypeMismatches.forEach(mismatch => {
                 console.log(`   - ${mismatch.name}: syntax declares '${mismatch.syntaxType}' but params declare '${mismatch.paramsType}'`);
             });
@@ -382,7 +380,7 @@ export class SyntaxChecker {
 
         const hasMalformation = filteredMalformationIssues.length > 0;
         if (extraParams.length === 0 && typeMismatches.length === 0 && returnTypeMismatches.length === 0 && !hasMalformation) {
-            console.log(`✅ All parsed parameters are valid!`);
+            console.log('✅ All parsed parameters are valid!');
         }
     }
 
@@ -392,8 +390,8 @@ export class SyntaxChecker {
      * @param command - Command object with Syntax and Params
      */
     checkCommand(name: string, command: CommandObject): void {
-        const syntax = command["Syntax"];
-        const params = command["Params"];
+        const syntax = command['Syntax'];
+        const params = command['Params'];
 
         if (!syntax) return;
 
@@ -414,26 +412,26 @@ export class SyntaxChecker {
         if (hasErrors) {
             console.log(`Command: ${name}`);
             console.log(`Syntax: ${syntax}`);
-            console.log(`Parsed variants:`, JSON.stringify(parsedParams, null, 2));
+            console.log('Parsed variants:', JSON.stringify(parsedParams, null, 2));
 
             if (params && params.length > 0) {
-                console.log(`\nActual Params:`, JSON.stringify(params, null, 2));
+                console.log('\nActual Params:', JSON.stringify(params, null, 2));
 
-                console.log(`Expected parameter names:`, actualParamNames);
+                console.log('Expected parameter names:', actualParamNames);
 
                 // Check each parsed variant
                 parsedParams.forEach((variant, index) => {
                     this.outputVariantAnalysis(variant, index, params, actualParamNames);
                 });
             } else {
-                console.log(`\nNo Params field found for this command`);
+                console.log('\nNo Params field found for this command');
 
                 // Still check for malformations even without params
                 parsedParams.forEach((variant, index) => {
                     const filteredMalformationIssues = this.getFilteredMalformationIssues(variant);
                     if (filteredMalformationIssues.length > 0) {
                         console.log(`\nVariant ${index + 1} analysis:`);
-                        console.log(`⚠️  Syntax malformation detected:`);
+                        console.log('⚠️  Syntax malformation detected:');
                         filteredMalformationIssues.forEach(issue => {
                             const levelStr = issue.level === WarningLevel.LEVEL_1 ? 'L1' : 'L2';
                             console.log(`   - [${levelStr}] ${issue.message}`);
@@ -451,20 +449,20 @@ export class SyntaxChecker {
 
     parseDirection(direction: string): Direction | undefined {
         switch (direction) {
-            case "&#8594;":
-            case "->": return Direction.In;
-            case "&#8592;":
-            case "<-": return Direction.Return;
-            case "<->": return Direction.IO;
+            case '&#8594;':
+            case '->': return Direction.In;
+            case '&#8592;':
+            case '<-': return Direction.Return;
+            case '<->': return Direction.IO;
         }
-        return undefined
+        return undefined;
     }
 
     parseParams(array: string[][]): DocumentationParameter[] {
-        let result = []
+        let result = [];
         for (const param of array) {
             if (param.length === 4) {
-                result.push(this.parseParam(param))
+                result.push(this.parseParam(param));
             }
         }
         return result;
@@ -473,7 +471,7 @@ export class SyntaxChecker {
     parseParam(array: string[]): DocumentationParameter {
         return {
             name: array[0],
-            type: array[1].replace("&#124;", ",").split(","),
+            type: array[1].replace('&#124;', ',').split(','),
             direction: this.parseDirection(array[2]),
             description: array[3]
         } as DocumentationParameter;
@@ -483,7 +481,7 @@ export class SyntaxChecker {
         return {
             Syntax: item.Syntax,
             Params: item.Params ? this.parseParams(item.Params) : undefined
-        } as CommandObject
+        } as CommandObject;
     }
 
 
@@ -515,7 +513,7 @@ export class SyntaxChecker {
      * Run the complete syntax check
      * @param docsPath - Path to documentation folder (default: "docs")
      */
-    async run(docsPath: string = "docs"): Promise<void> {
+    async run(docsPath: string = 'docs'): Promise<void> {
         this.checkAllSyntax(await this.getSyntaxViewPro(docsPath));
         this.checkAllSyntax(await this.getSyntax(docsPath));
     }

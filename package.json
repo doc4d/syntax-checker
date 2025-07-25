@@ -8,17 +8,21 @@
     "syntax-checker": "./out/check.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run lint && tsc",
     "build:watch": "tsc --watch",
     "dev": "tsc --watch",
-    "test": "vitest run",
+    "test": "npm run lint && vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "test:legacy": "node test.js",
     "check": "npm run build && node out/check.js",
     "check:ts": "node --loader ts-node/esm check.ts",
-    "prepare": "npm run build && (chmod +x out/check.js || true)"
+    "prepare": "npm run build && (chmod +x out/check.js || true)",
+    "lint": "eslint src tests --ext .ts,.js",
+    "lint:fix": "eslint src tests --ext .ts,.js --fix",
+    "lint:check": "eslint --print-config eslint.config.js",
+    "ci": "npm run lint && npm run test && npm run build"
   },
   "keywords": [
     "4d",
@@ -43,8 +47,12 @@
     "./checker": "./out/src/checker.js"
   },
   "devDependencies": {
+    "@eslint/js": "^9.31.0",
     "@types/node": "^24.0.14",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
     "@vitest/coverage-istanbul": "^3.2.4",
+    "eslint": "^9.31.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   }

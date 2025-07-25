@@ -27,9 +27,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['param2', 'Type2', '->', 'Description2'],
                 ['Result', 'Type3', '<-', 'Description3']
             ];
-            
+
             const result = checker.extractActualParamNames(checker.parseParams(params));
-            
+
             expect(result).toEqual(['param1', 'param2']);
         });
 
@@ -39,9 +39,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['param2', 'Type2', '<->', 'Description2'],
                 ['Result', 'Type3', '<-', 'Description3']
             ];
-            
+
             const result = checker.extractActualParamNames(checker.parseParams(params));
-            
+
             expect(result).toEqual(['param1', 'param2']);
         });
 
@@ -52,9 +52,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['Result', 'Type3', '<-', 'Description3'],
                 ['Function result', 'Type4', '<-', 'Description4']
             ];
-            
+
             const result = checker.extractActualParamNames(checker.parseParams(params));
-            
+
             expect(result).toEqual(['param1', 'outputparam']);
         });
 
@@ -73,9 +73,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['ParamName', 'Type1', '&#8594;', 'Description1'],
                 ['UPPERPARAM', 'Type2', '->', 'Description2']
             ];
-            
+
             const result = checker.extractActualParamNames(checker.parseParams(params));
-            
+
             expect(result).toEqual(['paramname', 'upperparam']);
         });
     });
@@ -94,9 +94,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['param2', 'Type2', '&#8594;', 'Description2']
             ];
             const actualParamNames = ['param1', 'param2'];
-            
+
             const result = checker.validateVariantParameters(variant as any, checker.parseParams(params), actualParamNames);
-            
+
             expect(result.extraParams).toHaveLength(0);
             expect(result.typeMismatches).toHaveLength(0);
             expect(result.returnTypeMismatches).toHaveLength(0);
@@ -114,9 +114,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['param1', 'Type1', '&#8594;', 'Description1']
             ];
             const actualParamNames = ['param1'];
-            
+
             const result = checker.validateVariantParameters(variant as any, checker.parseParams(params), actualParamNames);
-            
+
             expect(result.extraParams).toContain('extraparam');
         });
 
@@ -132,9 +132,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['param1', 'Type1', '&#8594;', 'Description1']
             ];
             const actualParamNames = ['param1'];
-            
+
             const result = checker.validateVariantParameters(variant as any, checker.parseParams(params), actualParamNames);
-            
+
             expect(result.extraParams).toHaveLength(0);
         });
 
@@ -150,9 +150,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['param1', 'Type2', '&#8594;', 'Description1']
             ];
             const actualParamNames = ['param1'];
-            
+
             const result = checker.validateVariantParameters(variant as any, checker.parseParams(params), actualParamNames);
-            
+
             expect(result.extraParams).toHaveLength(0);
         });
     });
@@ -168,9 +168,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const params = [
                 ['param1', 'CorrectType', '&#8594;', 'Description1']
             ];
-            
+
             const result = checker.checkTypeMismatches(variant as any, checker.parseParams(params));
-            
+
             expect(result).toHaveLength(1);
             expect(result[0].name).toBe('param1');
             expect(result[0].syntaxType).toBe('WrongType');
@@ -187,9 +187,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const params = [
                 ['param1', 'AnyType', '&#8594;', 'Description1']
             ];
-            
+
             const result = checker.checkTypeMismatches(variant as any, checker.parseParams(params));
-            
+
             expect(result).toHaveLength(0);
         });
 
@@ -203,9 +203,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const params = [
                 ['param1', 'CorrectType', '&#8594;', 'Description1']
             ];
-            
+
             const result = checker.checkTypeMismatches(variant as any, checker.parseParams(params));
-            
+
             expect(result).toHaveLength(0);
         });
 
@@ -217,9 +217,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ]
             };
             const params: any[] = [];
-            
+
             const result = checker.checkTypeMismatches(variant as any, params);
-            
+
             expect(result).toHaveLength(0);
         });
     });
@@ -232,9 +232,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 returnType: { name: 'result', type: 'ReturnType' }
             };
             const params: any[] = [];
-            
+
             const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params));
-            
+
             expect(result).toHaveLength(1);
             expect(result[0].name).toBe('result');
             expect(result[0].syntaxType).toBe('ReturnType');
@@ -250,9 +250,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const params = [
                 ['result', 'ActualType', '<-', 'Description1']
             ];
-            
+
             const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any));
-            
+
             expect(result).toHaveLength(1);
             expect(result[0].syntaxType).toBe('ExpectedType');
             expect(result[0].paramsType).toStrictEqual(['ActualType']);
@@ -267,9 +267,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const params = [
                 ['customResult', 'Type1', '<-', 'Description1']
             ];
-            
+
             const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any));
-            
+
             expect(result).toHaveLength(0);
         });
 
@@ -281,9 +281,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const params = [
                 ['result', 'Type1', '<-', 'Description1']
             ];
-            
+
             const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any));
-            
+
             expect(result).toHaveLength(0);
         });
     });
@@ -342,7 +342,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
     describe('Command Checking - Basic Functionality', () => {
         test('should handle command without syntax', () => {
             const command = {};
-            
+
             // Should not throw and should handle gracefully
             expect(() => {
                 checker.checkCommand('TestCommand', checker.parseCommand(command));
@@ -353,7 +353,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const command = {
                 Syntax: '**.root** : 4D.ZipFolder'
             };
-            
+
             expect(() => {
                 checker.checkCommand('TestCommand', checker.parseCommand(command));
             }).not.toThrow();
@@ -363,7 +363,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const command = {
                 Syntax: '**badFunction** ( param : Type'
             };
-            
+
             expect(() => {
                 checker.checkCommand('TestCommand', checker.parseCommand(command));
             }).not.toThrow();
@@ -386,7 +386,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['param1', 'Type1', '&#8594;', 'Description1']
             ];
             const actualParamNames = ['param1'];
-            
+
             expect(() => {
                 checker.outputVariantAnalysis(variant as any, 0, params as any, actualParamNames);
             }).not.toThrow();
@@ -405,7 +405,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             };
             const params: any[] = [];
             const actualParamNames: string[] = [];
-            
+
             expect(() => {
                 checker.outputVariantAnalysis(variant as any, 0, params, actualParamNames);
             }).not.toThrow();
@@ -426,7 +426,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['param1', 'CorrectType', '&#8594;', 'Description1']
             ];
             const actualParamNames = ['param1'];
-            
+
             expect(() => {
                 checker.outputVariantAnalysis(variant as any, 0, params as any, actualParamNames);
             }).not.toThrow();
@@ -439,7 +439,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 'item1': { Syntax: '**.item1** : Type1' },
                 'item2': { Syntax: '**.item2** ( param : Type )' }
             };
-            
+
             expect(() => {
                 checker.checkItems(items, 'TestType');
             }).not.toThrow();
@@ -455,7 +455,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                     'func1': { Syntax: '**.func1** () -> Type1' }
                 }
             };
-            
+
             expect(() => {
                 checker.checkAllSyntax(syntax);
             }).not.toThrow();
@@ -465,13 +465,13 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
     describe('Warning Level Filtering', () => {
         test('should filter malformations by warning level', () => {
             const level2Checker = new SyntaxChecker(WarningLevel.LEVEL_2);
-            
+
             // This would require access to private methods, so we test through public interface
             const command = {
                 Syntax: '**badFunction** ( param : Type',
                 Params: []
             };
-            
+
             expect(() => {
                 level2Checker.checkCommand('TestCommand', checker.parseCommand(command));
             }).not.toThrow();
@@ -479,16 +479,16 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
     });
 
     describe('Edge Cases and Error Handling', () => {
-    test('should handle null command object', () => {
-      // Test should expect the throw for null command
-      expect(() => {
-        checker.checkCommand('TestCommand', null as any);
-      }).toThrow();
-    });        test('should handle command with null syntax', () => {
+        test('should handle null command object', () => {
+            // Test should expect the throw for null command
+            expect(() => {
+                checker.checkCommand('TestCommand', null as any);
+            }).toThrow();
+        });        test('should handle command with null syntax', () => {
             const command = {
                 Syntax: null
             };
-            
+
             expect(() => {
                 checker.checkCommand('TestCommand', checker.parseCommand(command as any));
             }).not.toThrow();
@@ -498,7 +498,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const command = {
                 Syntax: ''
             };
-            
+
             expect(() => {
                 checker.checkCommand('TestCommand', checker.parseCommand(command));
             }).not.toThrow();
@@ -513,7 +513,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                     ['param', 'Type', '&#8594;', 'Description']
                 ]
             };
-            
+
             // This should throw due to malformed params
             expect(() => {
                 checker.checkCommand('TestCommand', checker.parseCommand(command as any));
@@ -523,37 +523,37 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
 
     describe('Performance Tests', () => {
         test('should handle large command objects efficiently', () => {
-            const largeParams = Array.from({ length: 100 }, (_, i) => 
+            const largeParams = Array.from({ length: 100 }, (_, i) =>
                 [`param${i}`, `Type${i}`, '&#8594;', `Description${i}`]
             );
-            
+
             const command = {
-                Syntax: `**largeFunction** ( ${Array.from({ length: 100 }, (_, i) => 
+                Syntax: `**largeFunction** ( ${Array.from({ length: 100 }, (_, i) =>
                     `param${i} : Type${i}`).join(' ; ')} )`,
                 Params: largeParams
             };
-            
+
             const start = performance.now();
             checker.checkCommand('LargeTestCommand', checker.parseCommand(command as any));
             const end = performance.now();
-            
+
             expect(end - start).toBeLessThan(100); // Should complete in less than 100ms
         });
 
         test('should handle many variants efficiently', () => {
-            const variants = Array.from({ length: 20 }, (_, i) => 
+            const variants = Array.from({ length: 20 }, (_, i) =>
                 `**func** ( param${i} : Type${i} )`
             ).join('<br/>');
-            
+
             const command = {
                 Syntax: variants,
                 Params: [['param0', 'Type0', '&#8594;', 'Description']]
             };
-            
+
             const start = performance.now();
             checker.checkCommand('ManyVariantsCommand', checker.parseCommand(command as any));
             const end = performance.now();
-            
+
             expect(end - start).toBeLessThan(200); // Should complete in less than 200ms
         });
     });

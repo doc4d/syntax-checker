@@ -16,7 +16,7 @@ describe('ParameterChecker', () => {
         test('should validate simple parameter with type', () => {
             const tokens = tokenizer.tokenize('param : Type');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(1);
             expect(result.parameters[0].name).toBe('param');
             expect(result.parameters[0].type).toBe('Type');
@@ -28,7 +28,7 @@ describe('ParameterChecker', () => {
         test('should validate multiple parameters', () => {
             const tokens = tokenizer.tokenize('param1 : Type1 ; param2 : Type2');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(2);
             expect(result.parameters[0].name).toBe('param1');
             expect(result.parameters[0].type).toBe('Type1');
@@ -39,7 +39,7 @@ describe('ParameterChecker', () => {
         test('should handle optional parameters', () => {
             const tokens = tokenizer.tokenize('param1 : Type1 ; { param2 : Type2 }');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(2);
             expect(result.parameters[0].optional).toBe(false);
             expect(result.parameters[1].optional).toBe(true);
@@ -50,7 +50,7 @@ describe('ParameterChecker', () => {
         test('should handle spread parameters', () => {
             const tokens = tokenizer.tokenize('...params : Type');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(1);
             expect(result.parameters[0].name).toBe('params');
             expect(result.parameters[0].type).toBe('Type');
@@ -62,7 +62,7 @@ describe('ParameterChecker', () => {
         test('should handle parameter without explicit type', () => {
             const tokens = tokenizer.tokenize('param');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(1);
             expect(result.parameters[0].name).toBe('param');
             expect(result.parameters[0].type).toBe('unknown');
@@ -71,7 +71,7 @@ describe('ParameterChecker', () => {
         test('should handle multiple parameters without types', () => {
             const tokens = tokenizer.tokenize('param1 ; param2');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(2);
             expect(result.parameters[0].name).toBe('param1');
             expect(result.parameters[0].type).toBe('unknown');
@@ -84,7 +84,7 @@ describe('ParameterChecker', () => {
         test('should handle mixed typed and untyped parameters', () => {
             const tokens = tokenizer.tokenize('param1 : Type1 ; param2 ; param3 : Type3');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(3);
             expect(result.parameters[0].type).toBe('Type1');
             expect(result.parameters[1].type).toBe('unknown');
@@ -94,7 +94,7 @@ describe('ParameterChecker', () => {
         test('should handle optional parameters with and without types', () => {
             const tokens = tokenizer.tokenize('param1 : Type1 ; { param2 } ; { param3 : Type3 }');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(3);
             expect(result.parameters[0].optional).toBe(false);
             expect(result.parameters[1].optional).toBe(true);
@@ -106,7 +106,7 @@ describe('ParameterChecker', () => {
         test('should handle nested optional blocks', () => {
             const tokens = tokenizer.tokenize('param1 : Type1 ; { param2 : Type2 ; { param3 : Type3 } }');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(3);
             expect(result.parameters[0].optional).toBe(false);
             expect(result.parameters[1].optional).toBe(true);
@@ -118,7 +118,7 @@ describe('ParameterChecker', () => {
         test('should parse parameters without return type handling', () => {
             const tokens = tokenizer.tokenize('param : Type');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(1);
             expect(result.parameters[0].name).toBe('param');
             expect(result.parameters[0].type).toBe('Type');
@@ -127,7 +127,7 @@ describe('ParameterChecker', () => {
         test('should handle arrow syntax as parameter name', () => {
             const tokens = tokenizer.tokenize('param : Type');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(1);
             expect(result.parameters[0].type).toBe('Type');
         });
@@ -135,7 +135,7 @@ describe('ParameterChecker', () => {
         test('should handle parameters without special return processing', () => {
             const tokens = tokenizer.tokenize('param1 : Type1 ; param2 : Type2');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(2);
         });
     });
@@ -143,7 +143,7 @@ describe('ParameterChecker', () => {
     describe('Error Handling', () => {
         test('should handle empty token array', () => {
             const result = checker.checkParameters([]);
-            
+
             expect(result.parameters).toHaveLength(0);
             expect(result.issues).toHaveLength(0);
         });
@@ -151,7 +151,7 @@ describe('ParameterChecker', () => {
         test('should handle malformed parameter syntax', () => {
             const tokens = tokenizer.tokenize('param : : Type');
             const result = checker.checkParameters(tokens);
-            
+
             // Should still try to parse what it can
             expect(result.parameters.length).toBeGreaterThanOrEqual(0);
         });
@@ -159,7 +159,7 @@ describe('ParameterChecker', () => {
         test('should handle incomplete parameter definitions', () => {
             const tokens = tokenizer.tokenize('param :');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(1);
             expect(result.parameters[0].name).toBe('param');
             expect(result.parameters[0].type).toBe('unknown');
@@ -170,7 +170,7 @@ describe('ParameterChecker', () => {
         test('should handle parameter names with special characters', () => {
             const tokens = tokenizer.tokenize('param-name : Type ; param_name : Type ; param.name : Type');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(3);
             expect(result.parameters[0].name).toBe('param-name');
             expect(result.parameters[1].name).toBe('param_name');
@@ -180,7 +180,7 @@ describe('ParameterChecker', () => {
         test('should handle complex type names', () => {
             const tokens = tokenizer.tokenize('param : Collection<Object> ; param2 : [Type]');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(2);
             expect(result.parameters[0].type).toBe('Collection<Object>');
             expect(result.parameters[1].type).toBe('[Type]');
@@ -191,14 +191,14 @@ describe('ParameterChecker', () => {
         test('should handle only whitespace tokens', () => {
             const tokens = tokenizer.tokenize('   \t  \n  ');
             const result = checker.checkParameters(tokens);
-            
+
             expect(result.parameters).toHaveLength(0);
         });
 
         test('should handle escaped operators', () => {
             const tokens = tokenizer.tokenize('param : Type \\* escaped');
             const result = checker.checkParameters(tokens);
-            
+
             // Should handle escaped asterisks appropriately
             expect(result.parameters.length).toBeGreaterThanOrEqual(1);
         });
@@ -206,7 +206,7 @@ describe('ParameterChecker', () => {
         test('should handle mixed valid and invalid syntax', () => {
             const tokens = tokenizer.tokenize('validParam : Type ; ; invalidParam');
             const result = checker.checkParameters(tokens);
-            
+
             // Should still parse the valid parts
             expect(result.parameters.length).toBeGreaterThanOrEqual(1);
             expect(result.parameters[0].name).toBe('validParam');
@@ -218,11 +218,11 @@ describe('ParameterChecker', () => {
         test('should handle large parameter lists efficiently', () => {
             const params = Array.from({ length: 100 }, (_, i) => `param${i} : Type${i}`).join(' ; ');
             const tokens = tokenizer.tokenize(params);
-            
+
             const start = performance.now();
             const result = checker.checkParameters(tokens);
             const end = performance.now();
-            
+
             expect(result.parameters).toHaveLength(100);
             expect(end - start).toBeLessThan(100); // Should complete in less than 100ms
         });
