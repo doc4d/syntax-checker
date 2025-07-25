@@ -4,12 +4,12 @@ import { MalformationChecker } from '../../src/malformation-checker.js';
 import { ParameterChecker } from '../../src/parameter-checker.js';
 import { WarningCode } from '../../src/types.js';
 
-describe.only('Warning ID System', () => {
+describe('Warning ID System', () => {
     const tokenizer = new Tokenizer();
     const malformationChecker = new MalformationChecker();
     const parameterChecker = new ParameterChecker();
 
-    describe.only('MalformationChecker Warning IDs', () => {
+    describe('MalformationChecker Warning IDs', () => {
         test('should assign UNCLOSED_OPTIONAL_BLOCK ID for unclosed braces', () => {
             const tokens = tokenizer.tokenize('{ param : Type');
             const issues = malformationChecker.checkMalformations(tokens);
@@ -111,7 +111,7 @@ describe.only('Warning ID System', () => {
             expect(issues.some(issue => issue.id === WarningCode.NON_ECMA_PARAMETER_NAME)).toBe(false);
         });
 
-        test.only('should NOT flag valid type formats', () => {
+        test('should NOT flag valid type formats', () => {
             const tokens = [
                 { type: TokenType.TYPE, value: 'Text', position: 0 },
                 { type: TokenType.TYPE, value: '4D.Collection', position: 7 },
