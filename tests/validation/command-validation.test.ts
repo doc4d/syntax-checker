@@ -23,7 +23,7 @@ describe('SyntaxChecker Command Validation', () => {
         ] as any[]
       };
 
-      checker.checkCommand("WEBSOCKET SEND", command);
+      checker.checkCommand("WEBSOCKET SEND", checker.parseCommand(command));
 
       const output = consoleSpy.mock.calls.map(call => call.join(' ')).join('\n');
       // Should NOT show type mismatches because Text is compatible with "Text / Blob / Object"
@@ -38,7 +38,7 @@ describe('SyntaxChecker Command Validation', () => {
         ] as any[]
       };
 
-      checker.checkCommand("WebSocket.send", command);
+      checker.checkCommand("WebSocket.send", checker.parseCommand(command));
 
       const output = consoleSpy.mock.calls.map(call => call.join(' ')).join('\n');
       // Should not show type mismatches due to the bug fix
@@ -54,7 +54,7 @@ describe('SyntaxChecker Command Validation', () => {
         ] as any[]
       };
 
-      checker.checkCommand("TEST COMMAND", command);
+      checker.checkCommand("TEST COMMAND", checker.parseCommand(command));
 
       const output = consoleSpy.mock.calls.map(call => call.join(' ')).join('\n');
       expect(output).toContain('Type mismatches');
@@ -73,7 +73,7 @@ describe('SyntaxChecker Command Validation', () => {
         ["param4", "Object", "&#8596;", "Input/Output parameter (HTML arrow)"]
       ] as any[];
 
-      const actualParamNames = checker.extractActualParamNames(params);
+      const actualParamNames = checker.extractActualParamNames(checker.parseParams(params));
       expect(actualParamNames).toContain('param1');
       expect(actualParamNames).toContain('param2');
       expect(actualParamNames).toContain('param3');
@@ -84,10 +84,10 @@ describe('SyntaxChecker Command Validation', () => {
       const params = [
         ["param1", "Text", "->", "Input parameter"],
         ["Result", "Number", "<-", "Output parameter"],
-        ["error", "Boolean", "&#8592;", "Output parameter (HTML arrow)"]
+        ["error", "Boolean", "<-", "Output parameter (HTML arrow)"]
       ] as any[];
 
-      const actualParamNames = checker.extractActualParamNames(params);
+      const actualParamNames = checker.extractActualParamNames(checker.parseParams(params));
       expect(actualParamNames).toContain('param1');
       expect(actualParamNames).not.toContain('result'); // Result should be excluded
       expect(actualParamNames).toContain('error');
@@ -102,7 +102,7 @@ describe('SyntaxChecker Command Validation', () => {
         ] as any[]
       };
 
-      expect(() => checker.checkCommand("NO SYNTAX", command)).not.toThrow();
+      expect(() => checker.checkCommand("NO SYNTAX", checker.parseCommand(command))).not.toThrow();
     });
 
     it('should handle commands with no parameters', () => {
@@ -110,7 +110,7 @@ describe('SyntaxChecker Command Validation', () => {
         Syntax: "**NO PARAMS** ( )"
       };
 
-      expect(() => checker.checkCommand("NO PARAMS", command)).not.toThrow();
+      expect(() => checker.checkCommand("NO PARAMS", checker.parseCommand(command))).not.toThrow();
     });
   });
 });

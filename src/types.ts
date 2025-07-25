@@ -8,6 +8,12 @@ export enum WarningLevel {
     LEVEL_2 = 2  // Lower priority warnings (type issues)
 }
 
+export enum Direction {
+    In,
+    IO,
+    Return
+}
+
 /**
  * Warning codes for different types of issues
  */

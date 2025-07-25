@@ -1,19 +1,31 @@
 import { Preprocessing } from "@4dsas/doc_preprocessing/lib/preprocessor.js";
 import { Settings, SETTINGS_KEY } from "@4dsas/doc_preprocessing/lib/settings.js";
 import { Parser, ParsedVariant, WarningLevel } from "./parser.js";
+import { Direction } from "./types.js";
 
 // Re-export WarningLevel for convenience
 export { WarningLevel } from "./parser.js";
+
 
 /**
  * Parameter data structure from documentation
  */
 interface DocumentationParameter {
-    0: string; // Parameter name
-    1: string; // Parameter type
-    2: string; // Parameter direction (-> or <-> etc.)
-    3: string; // Parameter description
+    name: string; // Parameter name
+    type: string[]; // Parameter type
+    direction?: Direction; // Parameter direction (-> or <-> etc.)
+    description: string; // Parameter description
     [key: number]: string;
+}
+
+
+/**
+ * Command object structure from documentation
+ */
+interface RawCommandObject {
+    Syntax?: string;
+    Params?: string[][];
+    [key: string]: any;
 }
 
 /**
@@ -25,13 +37,14 @@ interface CommandObject {
     [key: string]: any;
 }
 
+
 /**
  * Type mismatch information
  */
 interface TypeMismatch {
     name: string;
     syntaxType: string;
-    paramsType: string;
+    paramsType: string[];
 }
 
 /**
@@ -97,18 +110,15 @@ export class SyntaxChecker {
      */
     extractActualParamNames(params: DocumentationParameter[]): string[] {
         if (!params || params.length === 0) return [];
-        
+
         return params
             .filter(param => {
-                const direction = param[2];
-                const name = param[0];
-                return (direction === '&#8594;' || direction === '->' || 
-                        direction === '&#8596;' || direction === '<->' || 
-                        direction === '&#8592;' || direction === '<-') && 
-                       name !== 'Result' && 
-                       name !== 'Function result';
+                const name = param.name;
+                return (
+                    name !== 'Result' &&
+                    name !== 'Function result');
             })
-            .map(param => param[0].toLowerCase());
+            .map(param => param.name.toLowerCase());
     }
 
     /**
@@ -122,19 +132,20 @@ export class SyntaxChecker {
         const parsedParamNames = variant.parameters
             .filter(p => !p.spread) // Don't validate spread parameters
             .map(p => p.name.toLowerCase());
-        
+
+        const lowerCaseParameters = actualParamNames.map(p => p.toLocaleLowerCase());
         // Find extra parameters (parsed but not in actual params)
-        const extraParams = parsedParamNames.filter(parsed => 
-            !actualParamNames.includes(parsed) && 
+        const extraParams = parsedParamNames.filter(parsed =>
+            !lowerCaseParameters.includes(parsed) &&
             parsed !== '*'
         );
-        
+
         // Check for type mismatches
         const typeMismatches = this.checkTypeMismatches(variant, params);
-        
+
         // Check for return type mismatches
         const returnTypeMismatches = this.checkReturnTypeMismatches(variant, params);
-        
+
         return { extraParams, typeMismatches, returnTypeMismatches };
     }
 
@@ -146,29 +157,29 @@ export class SyntaxChecker {
      */
     checkTypeMismatches(variant: ParsedVariant, params: DocumentationParameter[]): TypeMismatch[] {
         const typeMismatches: TypeMismatch[] = [];
-        
+
         variant.parameters.forEach(parsedParam => {
             if (parsedParam.name !== '*' && !parsedParam.spread) { // Skip spread parameters
-                const actualParam = params.find(p => 
-                    p && p[0] && p[0].toLowerCase() === parsedParam.name.toLowerCase() &&
-                    (p[2] === '&#8594;' || p[2] === '->' || p[2] === '&#8596;' || p[2] === '<->')
+                const actualParam = params.find(p =>
+                    p && p.name && p.name.toLowerCase() === parsedParam.name.toLowerCase() &&
+                    (p.direction !== Direction.Return)
                 );
-                
+
                 if (actualParam && parsedParam.type !== 'unknown') {
-                    const actualType = actualParam[1];
+                    const actualTypes = actualParam.type;
                     const parsedType = parsedParam.type;
-                    
-                    if (!this.isTypeValid(parsedType, actualType)) {
+
+                    if (!this.isTypeValid(parsedType, actualTypes)) {
                         typeMismatches.push({
                             name: parsedParam.name,
                             syntaxType: parsedType,
-                            paramsType: actualType
+                            paramsType: actualTypes
                         });
                     }
                 }
             }
         });
-        
+
         return typeMismatches;
     }
 
@@ -180,51 +191,38 @@ export class SyntaxChecker {
      */
     checkReturnTypeMismatches(variant: ParsedVariant, params: DocumentationParameter[]): TypeMismatch[] {
         const returnTypeMismatches: TypeMismatch[] = [];
-        
+
         // Check if the parsed variant has return type information
         if (!variant.returnType) {
             return returnTypeMismatches;
         }
-        
+
         // Find the actual return type parameter (Result, Function result, or by name)
         const actualReturnParam = params.find(p => {
-            if (!p || !p[0]) return false;
-            
-            const paramName = p[0].toLowerCase();
-            const direction = p[2];
-            
+            const direction = p.direction;
+
             // Check if it's an output parameter
-            if (direction !== '&#8592;' && direction !== '<-') {
-                return false;
-            }
-            
-            // Check for standard return parameter names
-            if (paramName === 'result' || paramName === 'function result') {
+            if (direction === Direction.Return) {
                 return true;
             }
-            
-            // Check if it matches the return name from syntax (if specified)
-            if (variant.returnType!.name && paramName === variant.returnType!.name.toLowerCase()) {
-                return true;
-            }
-            
+
             return false;
         });
-        
+
         // If we have a return type in syntax but no matching return parameter
         if (variant.returnType!.type && !actualReturnParam) {
             returnTypeMismatches.push({
                 name: variant.returnType!.name || 'Function result',
                 syntaxType: variant.returnType!.type,
-                paramsType: 'missing'
+                paramsType: ['missing']
             });
         }
-        
+
         // If we have both syntax and actual return types, validate them
         if (variant.returnType!.type && actualReturnParam) {
-            const actualType = actualReturnParam[1];
+            const actualType = actualReturnParam.type;
             const syntaxType = variant.returnType!.type;
-            
+
             if (!this.isTypeValid(syntaxType, actualType)) {
                 returnTypeMismatches.push({
                     name: variant.returnType!.name || 'Function result',
@@ -233,7 +231,7 @@ export class SyntaxChecker {
                 });
             }
         }
-        
+
         return returnTypeMismatches;
     }
 
@@ -243,49 +241,52 @@ export class SyntaxChecker {
      * @param actualType - Type from actual parameters
      * @returns True if type is valid
      */
-    isTypeValid(parsedType: string, actualType: string): boolean {
+    isTypeValid(parsedType: string, actualTypes: string[]): boolean {
         // Check if the parsed type is valid according to the actual type specification
-        const actualTypeLower = actualType.toLowerCase().trim();
-        const parsedTypeLower = parsedType.toLowerCase().trim();
-        
-        // If parsed type is 'any', accept any actual type
-        if (parsedTypeLower === 'any') {
-            return true;
-        }
-        
-        // If they're exactly the same, it's valid
-        if (actualTypeLower === parsedTypeLower) {
-            return true;
-        }
-        
-        // Check for type equivalences
-        const typeEquivalences: { [key: string]: string } = {
-            'real': 'number',
-            'number': 'real'
-        };
-        
-        if (typeEquivalences[parsedTypeLower] === actualTypeLower) {
-            return true;
-        }
-        
-        // Split actual type by commas, forward slashes, or "or" and check if parsed type is in the list
-        const actualTypeList = actualTypeLower
-            .split(/[,\/]|\s+or\s+/)
-            .map(t => t.trim())
-            .filter(t => t.length > 0);
-        
-        // Check if parsed type is in the actual type list
-        if (actualTypeList.includes(parsedTypeLower)) {
-            return true;
-        }
-        
-        // Check type equivalences within the actual type list
-        for (const actualTypeItem of actualTypeList) {
-            if (typeEquivalences[parsedTypeLower] === actualTypeItem) {
+        for (const actualType of actualTypes) {
+            const actualTypeLower = actualType.toLowerCase().trim();
+            const parsedTypeLower = parsedType.toLowerCase().trim();
+
+            // If parsed type is 'any', accept any actual type
+            if (parsedTypeLower === 'any') {
                 return true;
             }
+
+            // If they're exactly the same, it's valid
+            if (actualTypeLower === parsedTypeLower) {
+                return true;
+            }
+
+            // Check for type equivalences
+            const typeEquivalences: { [key: string]: string } = {
+                'real': 'number',
+                'number': 'real'
+            };
+
+            if (typeEquivalences[parsedTypeLower] === actualTypeLower) {
+                return true;
+            }
+
+            // Split actual type by commas, forward slashes, or "or" and check if parsed type is in the list
+            const actualTypeList = actualTypeLower
+                .split(/[,\/]|\s+or\s+/)
+                .map(t => t.trim())
+                .filter(t => t.length > 0);
+
+            // Check if parsed type is in the actual type list
+            if (actualTypeList.includes(parsedTypeLower)) {
+                return true;
+            }
+
+            // Check type equivalences within the actual type list
+            for (const actualTypeItem of actualTypeList) {
+                if (typeEquivalences[parsedTypeLower] === actualTypeItem) {
+                    return true;
+                }
+            }
         }
-        
+
+
         return false;
     }
 
@@ -298,7 +299,7 @@ export class SyntaxChecker {
         if (!variant.malformation?.isMalformed) {
             return false;
         }
-        
+
         return variant.malformation.issues.some(issue => issue.level <= this.warningLevel);
     }
 
@@ -311,7 +312,7 @@ export class SyntaxChecker {
         if (!variant.malformation?.isMalformed) {
             return [];
         }
-        
+
         return variant.malformation.issues.filter(issue => issue.level <= this.warningLevel);
     }
 
@@ -325,15 +326,15 @@ export class SyntaxChecker {
     private hasVariantIssues(variant: ParsedVariant, params: DocumentationParameter[] = [], actualParamNames: string[] = []): boolean {
         // Always check for malformations first
         const hasMalformation = this.hasRelevantMalformation(variant);
-        
+
         // Only check parameter errors if we have params to validate against
         if (params.length === 0) {
             return hasMalformation;
         }
-        
+
         const { extraParams, typeMismatches, returnTypeMismatches } = this.validateVariantParameters(variant, params, actualParamNames);
         const hasParameterErrors = extraParams.length > 0 || typeMismatches.length > 0 || returnTypeMismatches.length > 0;
-        
+
         return hasMalformation || hasParameterErrors;
     }
 
@@ -348,7 +349,7 @@ export class SyntaxChecker {
         console.log(`\nVariant ${index + 1} analysis:`);
         const parsedParamNames = variant.parameters.map(p => p.name.toLowerCase());
         console.log(`Parsed parameter names:`, parsedParamNames);
-        
+
         // Check for syntax malformation at current warning level
         const filteredMalformationIssues = this.getFilteredMalformationIssues(variant);
         if (filteredMalformationIssues.length > 0) {
@@ -358,27 +359,27 @@ export class SyntaxChecker {
                 console.log(`   - [${levelStr}] ${issue.message}`);
             });
         }
-        
+
         const { extraParams, typeMismatches, returnTypeMismatches } = this.validateVariantParameters(variant, params, actualParamNames);
-        
+
         if (extraParams.length > 0) {
             console.log(`⚠️  Extra/Invalid parameters: ${extraParams.join(', ')}`);
         }
-        
+
         if (typeMismatches.length > 0) {
             console.log(`⚠️  Type mismatches:`);
             typeMismatches.forEach(mismatch => {
                 console.log(`   - ${mismatch.name}: syntax declares '${mismatch.syntaxType}' but params declare '${mismatch.paramsType}'`);
             });
         }
-        
+
         if (returnTypeMismatches.length > 0) {
             console.log(`⚠️  Return type mismatches:`);
             returnTypeMismatches.forEach(mismatch => {
                 console.log(`   - ${mismatch.name}: syntax declares '${mismatch.syntaxType}' but params declare '${mismatch.paramsType}'`);
             });
         }
-        
+
         const hasMalformation = filteredMalformationIssues.length > 0;
         if (extraParams.length === 0 && typeMismatches.length === 0 && returnTypeMismatches.length === 0 && !hasMalformation) {
             console.log(`✅ All parsed parameters are valid!`);
@@ -393,41 +394,40 @@ export class SyntaxChecker {
     checkCommand(name: string, command: CommandObject): void {
         const syntax = command["Syntax"];
         const params = command["Params"];
-        
+
         if (!syntax) return;
-        
+
         const parsedParams = this.parser.parseSyntax(syntax);
-        
+
         // Check if there are any errors/warnings
         let hasErrors = false;
         const actualParamNames = params && params.length > 0 ? this.extractActualParamNames(params) : [];
-        
+
         // Check each parsed variant for issues (malformations and parameter errors)
         parsedParams.forEach((variant) => {
             if (this.hasVariantIssues(variant, params, actualParamNames)) {
                 hasErrors = true;
             }
         });
-        
+
         // Only show full output if there are errors
         if (hasErrors) {
             console.log(`Command: ${name}`);
             console.log(`Syntax: ${syntax}`);
             console.log(`Parsed variants:`, JSON.stringify(parsedParams, null, 2));
-            
+
             if (params && params.length > 0) {
                 console.log(`\nActual Params:`, JSON.stringify(params, null, 2));
-                
-                const actualParamNames = this.extractActualParamNames(params);
+
                 console.log(`Expected parameter names:`, actualParamNames);
-                
+
                 // Check each parsed variant
                 parsedParams.forEach((variant, index) => {
                     this.outputVariantAnalysis(variant, index, params, actualParamNames);
                 });
             } else {
                 console.log(`\nNo Params field found for this command`);
-                
+
                 // Still check for malformations even without params
                 parsedParams.forEach((variant, index) => {
                     const filteredMalformationIssues = this.getFilteredMalformationIssues(variant);
@@ -441,7 +441,7 @@ export class SyntaxChecker {
                     }
                 });
             }
-            
+
             console.log('-'.repeat(60));
         } else {
             // Just show the syntax if no errors
@@ -449,15 +449,53 @@ export class SyntaxChecker {
         }
     }
 
+    parseDirection(direction: string): Direction | undefined {
+        switch (direction) {
+            case "&#8594;":
+            case "->": return Direction.In;
+            case "&#8592;":
+            case "<-": return Direction.Return;
+            case "<->": return Direction.IO;
+        }
+        return undefined
+    }
+
+    parseParams(array: string[][]): DocumentationParameter[] {
+        let result = []
+        for (const param of array) {
+            if (param.length === 4) {
+                result.push(this.parseParam(param))
+            }
+        }
+        return result;
+    }
+
+    parseParam(array: string[]): DocumentationParameter {
+        return {
+            name: array[0],
+            type: array[1].replace("&#124;", ",").split(","),
+            direction: this.parseDirection(array[2]),
+            description: array[3]
+        } as DocumentationParameter;
+    }
+
+    parseCommand(item: RawCommandObject): CommandObject {
+        return {
+            Syntax: item.Syntax,
+            Params: item.Params ? this.parseParams(item.Params) : undefined
+        } as CommandObject
+    }
+
+
     /**
      * Check all items in a syntax type
      * @param items - Items object
      * @param typeName - Type name for display
      */
-    checkItems(items: { [key: string]: CommandObject }, typeName: string): void {
+    checkItems(items: { [key: string]: RawCommandObject }, typeName: string): void {
         Object.keys(items).forEach((key) => {
             const val = items[key];
-            this.checkCommand(`${typeName}.${key}`, val);
+            this.checkCommand(`${typeName}.${key}`, this.parseCommand(val));
         });
     }
 
@@ -478,7 +516,7 @@ export class SyntaxChecker {
      * @param docsPath - Path to documentation folder (default: "docs")
      */
     async run(docsPath: string = "docs"): Promise<void> {
-        await this.checkAllSyntax(await this.getSyntaxViewPro(docsPath));
-        await this.checkAllSyntax(await this.getSyntax(docsPath));
+        this.checkAllSyntax(await this.getSyntaxViewPro(docsPath));
+        this.checkAllSyntax(await this.getSyntax(docsPath));
     }
 }

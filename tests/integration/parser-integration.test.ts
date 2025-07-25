@@ -10,19 +10,10 @@ class MockSyntaxChecker {
   }
 
   // Simple type validation logic for testing
-  isTypeValid(actualType: string, expectedType: string): boolean {
-    if (actualType === 'any' || expectedType === 'any') return true;
-    if (actualType === expectedType) return true;
-    
-    // Handle forward-slash separated types
-    if (expectedType.includes('/')) {
-      return expectedType.split('/').includes(actualType);
-    }
-    
-    // Handle comma-separated types
-    if (expectedType.includes(',')) {
-      return expectedType.split(',').map(t => t.trim()).includes(actualType);
-    }
+  isTypeValid(actualType: string, expectedTypes: string[]): boolean {
+    if (actualType === 'any') return true;
+    if (expectedTypes.includes('any')) return true;
+    if (expectedTypes.includes(actualType)) return true;
     
     // Handle type equivalences
     const equivalences: Record<string, string[]> = {
@@ -30,8 +21,11 @@ class MockSyntaxChecker {
       'Number': ['Real']
     };
     
-    if (equivalences[actualType]?.includes(expectedType)) return true;
-    if (equivalences[expectedType]?.includes(actualType)) return true;
+    // Check if any expected type is equivalent to the actual type
+    for (const expectedType of expectedTypes) {
+      if (equivalences[actualType]?.includes(expectedType)) return true;
+      if (equivalences[expectedType]?.includes(actualType)) return true;
+    }
     
     return false;
   }
@@ -64,41 +58,41 @@ describe('SyntaxChecker Class', () => {
 
   describe('Type Validation', () => {
     it('should validate exact type matches', () => {
-      expect(checker.isTypeValid("Text", "Text")).toBe(true);
-      expect(checker.isTypeValid("Object", "Object")).toBe(true);
-      expect(checker.isTypeValid("Integer", "Integer")).toBe(true);
+      expect(checker.isTypeValid("Text", ["Text"])).toBe(true);
+      expect(checker.isTypeValid("Object", ["Object"])).toBe(true);
+      expect(checker.isTypeValid("Integer", ["Integer"])).toBe(true);
     });
 
     it('should validate forward-slash separated types', () => {
-      expect(checker.isTypeValid("Text", "Text/Blob")).toBe(true);
-      expect(checker.isTypeValid("Blob", "Text/Blob")).toBe(true);
-      expect(checker.isTypeValid("Object", "Text/Blob")).toBe(false);
-      expect(checker.isTypeValid("Object", "Text/Blob/Object")).toBe(true);
+      expect(checker.isTypeValid("Text", ["Text", "Blob"])).toBe(true);
+      expect(checker.isTypeValid("Blob", ["Text", "Blob"])).toBe(true);
+      expect(checker.isTypeValid("Object", ["Text", "Blob"])).toBe(false);
+      expect(checker.isTypeValid("Object", ["Text", "Blob", "Object"])).toBe(true);
     });
 
     it('should validate comma-separated types', () => {
-      expect(checker.isTypeValid("Text", "Text, Number, Object")).toBe(true);
-      expect(checker.isTypeValid("Number", "Text, Number, Object")).toBe(true);
-      expect(checker.isTypeValid("Boolean", "Text, Number, Object")).toBe(false);
+      expect(checker.isTypeValid("Text", ["Text", "Number", "Object"])).toBe(true);
+      expect(checker.isTypeValid("Number", ["Text", "Number", "Object"])).toBe(true);
+      expect(checker.isTypeValid("Boolean", ["Text", "Number", "Object"])).toBe(false);
     });
 
     it('should handle type equivalences', () => {
-      expect(checker.isTypeValid("Real", "Number")).toBe(true);
-      expect(checker.isTypeValid("Number", "Real")).toBe(true);
-      expect(checker.isTypeValid("Text", "String")).toBe(false); // No equivalence
-      expect(checker.isTypeValid("Integer", "Boolean")).toBe(false); // No equivalence
+      expect(checker.isTypeValid("Real", ["Number"])).toBe(true);
+      expect(checker.isTypeValid("Number", ["Real"])).toBe(true);
+      expect(checker.isTypeValid("Text", ["String"])).toBe(false); // No equivalence
+      expect(checker.isTypeValid("Integer", ["Boolean"])).toBe(false); // No equivalence
     });
 
     it('should handle "any" type validation', () => {
-      expect(checker.isTypeValid("any", "Text")).toBe(true);
-      expect(checker.isTypeValid("any", "Number")).toBe(true);
-      expect(checker.isTypeValid("any", "Boolean")).toBe(true);
-      expect(checker.isTypeValid("any", "Object")).toBe(true);
-      expect(checker.isTypeValid("any", "Array")).toBe(true);
-      expect(checker.isTypeValid("any", "Collection")).toBe(true);
-      expect(checker.isTypeValid("any", "Date")).toBe(true);
-      expect(checker.isTypeValid("any", "Complex Type")).toBe(true);
-      expect(checker.isTypeValid("any", "Number, Text, Collection, Object, Date, Boolean")).toBe(true);
+      expect(checker.isTypeValid("any", ["Text"])).toBe(true);
+      expect(checker.isTypeValid("any", ["Number"])).toBe(true);
+      expect(checker.isTypeValid("any", ["Boolean"])).toBe(true);
+      expect(checker.isTypeValid("any", ["Object"])).toBe(true);
+      expect(checker.isTypeValid("any", ["Array"])).toBe(true);
+      expect(checker.isTypeValid("any", ["Collection"])).toBe(true);
+      expect(checker.isTypeValid("any", ["Date"])).toBe(true);
+      expect(checker.isTypeValid("any", ["Complex Type"])).toBe(true);
+      expect(checker.isTypeValid("any", ["Number", "Text", "Collection", "Object", "Date", "Boolean"])).toBe(true);
     });
   });
 
