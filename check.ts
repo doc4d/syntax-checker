@@ -13,7 +13,7 @@ function parseArgs() {
     let docsPath: string | undefined;
     let outputFile: string | undefined;
     let warningLevel = WarningLevel.LEVEL_1; // Default to LEVEL_1 (high priority only)
-    
+
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
         if (arg === '--warning-level' || arg === '-w') {
@@ -41,7 +41,7 @@ function parseArgs() {
             docsPath = arg;
         }
     }
-    
+
     return { docsPath, outputFile, warningLevel };
 }
 
@@ -66,7 +66,7 @@ Options:
 
 Examples:
   syntax-checker                           # Use default path, show only high priority warnings
-  syntax-checker ./docs                    # Use ./docs path, show only high priority warnings  
+  syntax-checker ./docs                    # Use ./docs path, show only high priority warnings
   syntax-checker ./docs --warning-level 2 # Use ./docs path, show all warnings
   syntax-checker -w 2                     # Use default path, show all warnings
   syntax-checker -o results.txt           # Output to results.txt file
@@ -79,12 +79,12 @@ Examples:
  */
 async function main() {
     const { docsPath: argDocsPath, outputFile, warningLevel } = parseArgs();
-    
+
     const checker = new SyntaxChecker(warningLevel);
-    
+
     // Get docs path from command line args or use default
     let docsPath = argDocsPath;
-    
+
     // If no path provided, use default relative to script location
     if (!docsPath) {
         const __filename = fileURLToPath(import.meta.url);
@@ -94,53 +94,53 @@ async function main() {
     } else {
         console.log(`Using provided docs path: ${docsPath}`);
     }
-    
+
     const warningLevelStr = warningLevel === WarningLevel.LEVEL_1 ? 'Level 1 (High Priority)' : 'Level 2 (All Warnings)';
     console.log(`Warning level: ${warningLevelStr}`);
-    
+
     if (outputFile) {
         console.log(`Output will be written to: ${outputFile}`);
     }
-    
+
     console.log(`Starting syntax check for: ${docsPath}`);
-    console.log('=' .repeat(50));
-    
+    console.log('='.repeat(50));
+
     // Capture console output if writing to file
     let capturedOutput = '';
     let originalConsoleLog: typeof console.log | undefined;
     let originalConsoleError: typeof console.error | undefined;
-    
+
     if (outputFile) {
         originalConsoleLog = console.log;
         originalConsoleError = console.error;
-        
+
         console.log = (...args: any[]) => {
             const message = args.join(' ') + '\n';
             capturedOutput += message;
             originalConsoleLog!(...args);
         };
-        
+
         console.error = (...args: any[]) => {
             const message = 'ERROR: ' + args.join(' ') + '\n';
             capturedOutput += message;
             originalConsoleError!(...args);
         };
     }
-    
+
     try {
         await checker.run(docsPath);
         console.log('\n' + '='.repeat(50));
         console.log('Syntax check completed!');
     } catch (error) {
         console.error('Error during syntax check:', error);
-        
+
         // Write partial output to file if specified, even on error
         if (outputFile && capturedOutput) {
             try {
                 // Restore original console functions first
                 if (originalConsoleLog) console.log = originalConsoleLog;
                 if (originalConsoleError) console.error = originalConsoleError;
-                
+
                 writeFileSync(outputFile, capturedOutput + `\nERROR: ${error}\n`, 'utf8');
                 console.log(`Partial results written to: ${outputFile}`);
             } catch (writeError) {
@@ -153,16 +153,16 @@ async function main() {
                 if (originalConsoleError) console.error = originalConsoleError;
             }
         }
-        
+
         process.exit(1);
     }
-    
+
     // Write output to file if specified
     if (outputFile) {
         // Restore original console functions
         if (originalConsoleLog) console.log = originalConsoleLog;
         if (originalConsoleError) console.error = originalConsoleError;
-        
+
         try {
             writeFileSync(outputFile, capturedOutput, 'utf8');
             console.log(`\nResults written to: ${outputFile}`);

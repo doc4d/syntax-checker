@@ -112,9 +112,12 @@ export class SyntaxChecker {
         return params
             .filter(param => {
                 const name = param.name;
+                const direction = param.direction;
+                // Only include input and input/output parameters, exclude return parameters
                 return (
-                    name !== 'Result' &&
-                    name !== 'Function result');
+                    direction !== Direction.Return &&
+                    name !== 'Function result'
+                );
             })
             .map(param => param.name.toLowerCase());
     }
@@ -461,7 +464,7 @@ export class SyntaxChecker {
     parseParams(array: string[][]): DocumentationParameter[] {
         let result = [];
         for (const param of array) {
-            if (param.length === 4) {
+            if (param.length >= 4) { // Accept 4 or more elements
                 result.push(this.parseParam(param));
             }
         }
