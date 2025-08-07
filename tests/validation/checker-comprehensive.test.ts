@@ -484,7 +484,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             expect(() => {
                 checker.checkCommand('TestCommand', null as any);
             }).toThrow();
-        });        test('should handle command with null syntax', () => {
+        }); test('should handle command with null syntax', () => {
             const command = {
                 Syntax: null
             };

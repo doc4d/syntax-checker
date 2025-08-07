@@ -31,9 +31,9 @@ export default [
     rules: {
       // Base JavaScript rules
       ...js.configs.recommended.rules,
-      
+
       // TypeScript-specific rules
-      '@typescript-eslint/no-unused-vars': ['error', { 
+      '@typescript-eslint/no-unused-vars': ['error', {
         'argsIgnorePattern': '^_',
         'varsIgnorePattern': '^_'
       }],
@@ -41,7 +41,7 @@ export default [
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-inferrable-types': 'off',
-      
+
       // Code style rules
       'indent': ['error', 4, { 'SwitchCase': 1 }],
       'quotes': ['error', 'single', { 'avoidEscape': true }],
@@ -50,7 +50,7 @@ export default [
       'no-trailing-spaces': 'error',
       'no-multiple-empty-lines': ['error', { 'max': 2 }],
       'eol-last': 'error',
-      
+
       // Best practices
       'no-console': 'off', // Allow console for CLI tool
       'no-debugger': 'error',
@@ -59,15 +59,15 @@ export default [
       'no-implied-eval': 'error',
       'no-new-func': 'error',
       'no-script-url': 'error',
-      
+
       // Allow unused vars in constants/enums (common in TypeScript)
       'no-unused-vars': 'off', // Use TypeScript rule instead
-      
+
       // Relax some strict rules for this project
       'no-case-declarations': 'off'
     },
   },
-  
+
   // Test files - more relaxed rules
   {
     files: ['tests/**/*.{js,ts}', '**/*.test.{js,ts}', '**/*.spec.{js,ts}'],
@@ -77,7 +77,7 @@ export default [
       '@typescript-eslint/no-unused-vars': 'off'
     },
   },
-  
+
   // Configuration files
   {
     files: ['*.config.{js,ts}', '.eslintrc.{js,ts}'],
@@ -91,7 +91,7 @@ export default [
       }
     }
   },
-  
+
   // Ignore patterns
   {
     ignores: [

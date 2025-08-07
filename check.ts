@@ -3,6 +3,7 @@
 import { SyntaxChecker, WarningLevel } from "./src/checker.js";
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { writeFileSync } from 'fs';
 
 /**
  * Parse command line arguments
@@ -10,6 +11,7 @@ import { dirname, join } from 'path';
 function parseArgs() {
     const args = process.argv.slice(2);
     let docsPath: string | undefined;
+    let outputFile: string | undefined;
     let warningLevel = WarningLevel.LEVEL_1; // Default to LEVEL_1 (high priority only)
     
     for (let i = 0; i < args.length; i++) {
@@ -25,6 +27,13 @@ function parseArgs() {
                 process.exit(1);
             }
             i++; // Skip the next argument since we consumed it
+        } else if (arg === '--output' || arg === '-o') {
+            outputFile = args[i + 1];
+            if (!outputFile) {
+                console.error('Output file path is required after --output');
+                process.exit(1);
+            }
+            i++; // Skip the next argument since we consumed it
         } else if (arg === '--help' || arg === '-h') {
             showHelp();
             process.exit(0);
@@ -33,7 +42,7 @@ function parseArgs() {
         }
     }
     
-    return { docsPath, warningLevel };
+    return { docsPath, outputFile, warningLevel };
 }
 
 /**
@@ -52,6 +61,7 @@ Options:
   -w, --warning-level <1|2>  Set warning level (default: 1)
                               1: Show only high priority warnings (structural issues)
                               2: Show all warnings (structural + type issues)
+  -o, --output <file>        Output results to file instead of console
   -h, --help                 Show this help message
 
 Examples:
@@ -59,6 +69,8 @@ Examples:
   syntax-checker ./docs                    # Use ./docs path, show only high priority warnings  
   syntax-checker ./docs --warning-level 2 # Use ./docs path, show all warnings
   syntax-checker -w 2                     # Use default path, show all warnings
+  syntax-checker -o results.txt           # Output to results.txt file
+  syntax-checker ./docs -w 2 -o report.md # Full report to markdown file
 `);
 }
 
@@ -66,7 +78,7 @@ Examples:
  * Main entry point for syntax checking
  */
 async function main() {
-    const { docsPath: argDocsPath, warningLevel } = parseArgs();
+    const { docsPath: argDocsPath, outputFile, warningLevel } = parseArgs();
     
     const checker = new SyntaxChecker(warningLevel);
     
@@ -85,8 +97,35 @@ async function main() {
     
     const warningLevelStr = warningLevel === WarningLevel.LEVEL_1 ? 'Level 1 (High Priority)' : 'Level 2 (All Warnings)';
     console.log(`Warning level: ${warningLevelStr}`);
+    
+    if (outputFile) {
+        console.log(`Output will be written to: ${outputFile}`);
+    }
+    
     console.log(`Starting syntax check for: ${docsPath}`);
     console.log('=' .repeat(50));
+    
+    // Capture console output if writing to file
+    let capturedOutput = '';
+    let originalConsoleLog: typeof console.log | undefined;
+    let originalConsoleError: typeof console.error | undefined;
+    
+    if (outputFile) {
+        originalConsoleLog = console.log;
+        originalConsoleError = console.error;
+        
+        console.log = (...args: any[]) => {
+            const message = args.join(' ') + '\n';
+            capturedOutput += message;
+            originalConsoleLog!(...args);
+        };
+        
+        console.error = (...args: any[]) => {
+            const message = 'ERROR: ' + args.join(' ') + '\n';
+            capturedOutput += message;
+            originalConsoleError!(...args);
+        };
+    }
     
     try {
         await checker.run(docsPath);
@@ -94,7 +133,43 @@ async function main() {
         console.log('Syntax check completed!');
     } catch (error) {
         console.error('Error during syntax check:', error);
+        
+        // Write partial output to file if specified, even on error
+        if (outputFile && capturedOutput) {
+            try {
+                // Restore original console functions first
+                if (originalConsoleLog) console.log = originalConsoleLog;
+                if (originalConsoleError) console.error = originalConsoleError;
+                
+                writeFileSync(outputFile, capturedOutput + `\nERROR: ${error}\n`, 'utf8');
+                console.log(`Partial results written to: ${outputFile}`);
+            } catch (writeError) {
+                console.error(`Error writing to file ${outputFile}:`, writeError);
+            }
+        } else {
+            // Restore original console functions if there was an error but no output to write
+            if (outputFile) {
+                if (originalConsoleLog) console.log = originalConsoleLog;
+                if (originalConsoleError) console.error = originalConsoleError;
+            }
+        }
+        
         process.exit(1);
+    }
+    
+    // Write output to file if specified
+    if (outputFile) {
+        // Restore original console functions
+        if (originalConsoleLog) console.log = originalConsoleLog;
+        if (originalConsoleError) console.error = originalConsoleError;
+        
+        try {
+            writeFileSync(outputFile, capturedOutput, 'utf8');
+            console.log(`\nResults written to: ${outputFile}`);
+        } catch (writeError) {
+            console.error(`Error writing to file ${outputFile}:`, writeError);
+            process.exit(1);
+        }
     }
 }
 

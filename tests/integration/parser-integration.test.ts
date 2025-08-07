@@ -157,8 +157,8 @@ describe('SyntaxChecker Class', () => {
         it('should handle complex syntax efficiently', () => {
             const parser = new Parser();
             const complexSyntax = 'test(' +
-        Array.from({length: 20}, (_, i) => `param${i}:Type${i}`).join(';') +
-        ')';
+                Array.from({ length: 20 }, (_, i) => `param${i}:Type${i}`).join(';') +
+                ')';
 
             const startTime = performance.now();
 
