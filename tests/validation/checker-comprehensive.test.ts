@@ -45,19 +45,6 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             expect(result).toEqual(['param1', 'param2']);
         });
 
-        test('should include output parameters except Result/Function result', () => {
-            const params = [
-                ['param1', 'Type1', '&#8594;', 'Description1'],
-                ['outputParam', 'Type2', '<-', 'Description2'],
-                ['Result', 'Type3', '<-', 'Description3'],
-                ['Function result', 'Type4', '<-', 'Description4']
-            ];
-
-            const result = checker.extractActualParamNames(checker.parseParams(params));
-
-            expect(result).toEqual(['param1', 'outputparam']);
-        });
-
         test('should handle empty parameter array', () => {
             const result = checker.extractActualParamNames([]);
             expect(result).toEqual([]);

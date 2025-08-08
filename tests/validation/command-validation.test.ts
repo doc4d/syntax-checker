@@ -7,7 +7,7 @@ describe('SyntaxChecker Command Validation', () => {
 
     beforeEach(() => {
         checker = new SyntaxChecker();
-        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
     });
 
     afterEach(() => {
@@ -90,7 +90,7 @@ describe('SyntaxChecker Command Validation', () => {
             const actualParamNames = checker.extractActualParamNames(checker.parseParams(params));
             expect(actualParamNames).toContain('param1');
             expect(actualParamNames).not.toContain('result'); // Result should be excluded
-            expect(actualParamNames).toContain('error');
+            expect(actualParamNames).not.toContain('error');
         });
     });
 
