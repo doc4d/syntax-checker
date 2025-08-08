@@ -46,6 +46,14 @@ interface TypeMismatch {
 }
 
 /**
+ * Parameter information with direction
+ */
+interface ParameterInfo {
+    name: string;
+    direction: Direction;
+}
+
+/**
  * Validation result for variant parameters
  */
 interface ValidationResult {
@@ -102,19 +110,36 @@ export class SyntaxChecker {
     }
 
     /**
-     * Extract actual parameter names from parameter array
+     * Extract actual parameter names and directions from parameter array
      * @param params - Parameter array from documentation
-     * @returns Array of parameter names
+     * @returns Array of parameter info with names and directions
      */
-    extractActualParamNames(params: DocumentationParameter[]): string[] {
+    extractActualParamNames(params: DocumentationParameter[]): ParameterInfo[] {
+        if (!params || params.length === 0) return [];
+
+        return params
+            .filter(param => param.direction !== undefined) // Only include params with valid direction
+            .map(param => ({
+                name: param.name.toLowerCase(),
+                direction: param.direction!
+            }));
+    }
+
+    /**
+     * Get input parameter names (excluding return parameters)
+     * @param params - Parameter array from documentation
+     * @returns Array of input parameter names
+     */
+    getInputParameterNames(params: DocumentationParameter[]): string[] {
         if (!params || params.length === 0) return [];
 
         return params
             .filter(param => {
                 const name = param.name;
                 const direction = param.direction;
-                // Only include input and input/output parameters, exclude return parameters
+                // Only include parameters with valid direction, and exclude return parameters
                 return (
+                    direction !== undefined &&
                     direction !== Direction.Return &&
                     name !== 'Function result'
                 );
@@ -402,7 +427,8 @@ export class SyntaxChecker {
 
         // Check if there are any errors/warnings
         let hasErrors = false;
-        const actualParamNames = params && params.length > 0 ? this.extractActualParamNames(params) : [];
+        const actualParamNames = params && params.length > 0 ? this.getInputParameterNames(params) : [];
+        const allParamInfo = params && params.length > 0 ? this.extractActualParamNames(params) : [];
 
         // Check each parsed variant for issues (malformations and parameter errors)
         parsedParams.forEach((variant) => {
@@ -421,6 +447,7 @@ export class SyntaxChecker {
                 console.log('\nActual Params:', JSON.stringify(params, null, 2));
 
                 console.log('Expected parameter names:', actualParamNames);
+                console.log('All parameter info:', allParamInfo.map(p => `${p.name} (direction: ${p.direction})`));
 
                 // Check each parsed variant
                 parsedParams.forEach((variant, index) => {
@@ -456,6 +483,7 @@ export class SyntaxChecker {
             case '->': return Direction.In;
             case '&#8592;':
             case '<-': return Direction.Return;
+            case '&#8596;':
             case '<->': return Direction.IO;
         }
         return undefined;

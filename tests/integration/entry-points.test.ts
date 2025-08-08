@@ -69,7 +69,7 @@ describe('Entry Points and CLI', () => {
             const checker = new SyntaxChecker();
 
             // Test basic functionality
-            const result = checker.extractActualParamNames(checker.parseParams([
+            const result = checker.getInputParameterNames(checker.parseParams([
                 ['param1', 'Type1', '&#8594;', 'Description1']
             ] as any));
 
@@ -151,7 +151,7 @@ describe('Entry Points and CLI', () => {
 
             const promises = Array.from({ length: 10 }, async (_, i) => {
                 const checker = new module.SyntaxChecker();
-                return checker.extractActualParamNames(checker.parseParams([
+                return checker.getInputParameterNames(checker.parseParams([
                     [`param${i}`, `Type${i}`, '&#8594;', `Description${i}`]
                 ] as any));
             });

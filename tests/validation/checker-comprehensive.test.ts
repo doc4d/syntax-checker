@@ -28,7 +28,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['Result', 'Type3', '<-', 'Description3']
             ];
 
-            const result = checker.extractActualParamNames(checker.parseParams(params));
+            const result = checker.getInputParameterNames(checker.parseParams(params));
 
             expect(result).toEqual(['param1', 'param2']);
         });
@@ -40,7 +40,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['Result', 'Type3', '<-', 'Description3']
             ];
 
-            const result = checker.extractActualParamNames(checker.parseParams(params));
+            const result = checker.getInputParameterNames(checker.parseParams(params));
 
             expect(result).toEqual(['param1', 'param2']);
         });
@@ -61,7 +61,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['UPPERPARAM', 'Type2', '->', 'Description2']
             ];
 
-            const result = checker.extractActualParamNames(checker.parseParams(params));
+            const result = checker.getInputParameterNames(checker.parseParams(params));
 
             expect(result).toEqual(['paramname', 'upperparam']);
         });

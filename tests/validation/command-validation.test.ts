@@ -73,7 +73,7 @@ describe('SyntaxChecker Command Validation', () => {
                 ['param4', 'Object', '&#8596;', 'Input/Output parameter (HTML arrow)']
             ] as any[];
 
-            const actualParamNames = checker.extractActualParamNames(checker.parseParams(params));
+            const actualParamNames = checker.getInputParameterNames(checker.parseParams(params));
             expect(actualParamNames).toContain('param1');
             expect(actualParamNames).toContain('param2');
             expect(actualParamNames).toContain('param3');
@@ -87,7 +87,7 @@ describe('SyntaxChecker Command Validation', () => {
                 ['error', 'Boolean', '<-', 'Output parameter (HTML arrow)']
             ] as any[];
 
-            const actualParamNames = checker.extractActualParamNames(checker.parseParams(params));
+            const actualParamNames = checker.getInputParameterNames(checker.parseParams(params));
             expect(actualParamNames).toContain('param1');
             expect(actualParamNames).not.toContain('result'); // Result should be excluded
             expect(actualParamNames).not.toContain('error');
