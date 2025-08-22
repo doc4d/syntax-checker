@@ -110,6 +110,18 @@ export class SyntaxChecker {
     }
 
     /**
+     * Check if a parameter is a function result parameter
+     * @param param - Parameter to check
+     * @returns True if parameter is a function result (Result or Function result with Direction.Return)
+     */
+    private isFunctionResult(param: DocumentationParameter): boolean {
+        const name = param.name.toLowerCase();
+        const direction = param.direction;
+        return direction === Direction.Return &&
+            (name === 'result' || name === 'function result');
+    }
+
+    /**
      * Extract actual parameter names and directions from parameter array
      * @param params - Parameter array from documentation
      * @returns Array of parameter info with names and directions
@@ -135,13 +147,13 @@ export class SyntaxChecker {
 
         return params
             .filter(param => {
-                const name = param.name;
                 const direction = param.direction;
-                // Only include parameters with valid direction, and exclude return parameters
+                // Only include parameters with valid direction
+                // Exclude function result parameters (Result or Function result with Direction.Return)
+                // But include other Direction.Return parameters as they are output parameters, not function results
                 return (
                     direction !== undefined &&
-                    direction !== Direction.Return &&
-                    name !== 'Function result'
+                    !this.isFunctionResult(param)
                 );
             })
             .map(param => param.name.toLowerCase());
@@ -186,10 +198,15 @@ export class SyntaxChecker {
 
         variant.parameters.forEach(parsedParam => {
             if (parsedParam.name !== '*' && !parsedParam.spread) { // Skip spread parameters
-                const actualParam = params.find(p =>
-                    p && p.name && p.name.toLowerCase() === parsedParam.name.toLowerCase() &&
-                    (p.direction !== Direction.Return)
-                );
+                const actualParam = params.find(p => {
+                    if (!p || !p.name) return false;
+
+                    const paramName = p.name.toLowerCase();
+                    const parsedName = parsedParam.name.toLowerCase();
+
+                    // Match by name but exclude function result parameters
+                    return paramName === parsedName && !this.isFunctionResult(p);
+                });
 
                 if (actualParam && parsedParam.type !== 'unknown') {
                     const actualTypes = actualParam.type;
@@ -223,12 +240,19 @@ export class SyntaxChecker {
             return returnTypeMismatches;
         }
 
-        // Find the actual return type parameter (Result, Function result, or by name)
+        // Find the actual return type parameter (Result, Function result, or by specific name)
         const actualReturnParam = params.find(p => {
             const direction = p.direction;
+            const name = p.name.toLowerCase();
 
-            // Check if it's an output parameter
-            if (direction === Direction.Return) {
+            // Check if it's the function result by name and direction
+            if (this.isFunctionResult(p)) {
+                return true;
+            }
+
+            // If variant has a specific return name, match by name and direction
+            if (variant.returnType!.name && direction === Direction.Return &&
+                name === variant.returnType!.name.toLowerCase()) {
                 return true;
             }
 

@@ -65,6 +65,32 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
 
             expect(result).toEqual(['paramname', 'upperparam']);
         });
+
+        test('should include output parameters but exclude function result', () => {
+            const params = [
+                ['inputParam', 'Type1', '&#8594;', 'Description1'],
+                ['outputParam', 'Type2', '<-', 'Description2'],
+                ['Result', 'Type3', '<-', 'Description3'],
+                ['Function result', 'Type4', '<-', 'Description4']
+            ];
+
+            const result = checker.getInputParameterNames(checker.parseParams(params));
+
+            expect(result).toEqual(['inputparam', 'outputparam']);
+        });
+
+        test('should handle multiple output parameters with Direction.Return', () => {
+            const params = [
+                ['input1', 'Type1', '&#8594;', 'Description1'],
+                ['output1', 'Type2', '<-', 'Description2'],
+                ['output2', 'Type3', '<-', 'Description3'],
+                ['result', 'Type4', '<-', 'Description4']
+            ];
+
+            const result = checker.getInputParameterNames(checker.parseParams(params));
+
+            expect(result).toEqual(['input1', 'output1', 'output2']);
+        });
     });
 
     describe('Variant Parameter Validation', () => {
@@ -209,6 +235,47 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
 
             expect(result).toHaveLength(0);
         });
+
+        test('should check output parameter types but not function result', () => {
+            const variant = {
+                variant: 'test',
+                parameters: [
+                    { name: 'outputParam', type: 'WrongType', optional: false, spread: false },
+                    { name: 'result', type: 'AnyType', optional: false, spread: false }
+                ]
+            };
+            const params = [
+                ['outputParam', 'CorrectType', '<-', 'Description1'],
+                ['result', 'FunctionResultType', '<-', 'Description2']
+            ];
+
+            const result = checker.checkTypeMismatches(variant as any, checker.parseParams(params));
+
+            // Should detect type mismatch for outputParam but ignore 'result' as it's a function result
+            expect(result).toHaveLength(1);
+            expect(result[0].name).toBe('outputParam');
+            expect(result[0].syntaxType).toBe('WrongType');
+            expect(result[0].paramsType).toStrictEqual(['CorrectType']);
+        });
+
+        test('should validate output parameters with Direction.Return', () => {
+            const variant = {
+                variant: 'test',
+                parameters: [
+                    { name: 'output1', type: 'Type1', optional: false, spread: false },
+                    { name: 'output2', type: 'Type2', optional: false, spread: false }
+                ]
+            };
+            const params = [
+                ['output1', 'Type1', '<-', 'Description1'],
+                ['output2', 'Type2', '<-', 'Description2'],
+                ['result', 'Type3', '<-', 'Function result description']
+            ];
+
+            const result = checker.checkTypeMismatches(variant as any, checker.parseParams(params));
+
+            expect(result).toHaveLength(0);
+        });
     });
 
     describe('Return Type Mismatch Detection', () => {
@@ -272,6 +339,61 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any));
 
             expect(result).toHaveLength(0);
+        });
+
+        test('should not match output parameters as function results', () => {
+            const variant = {
+                variant: 'test',
+                parameters: [],
+                returnType: { name: 'result', type: 'ExpectedType' }
+            };
+            const params = [
+                ['outputParam', 'Type1', '<-', 'Description1'],
+                ['anotherOutput', 'Type2', '<-', 'Description2']
+            ];
+
+            const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any));
+
+            // Should detect missing function result (not match output params)
+            expect(result).toHaveLength(1);
+            expect(result[0].name).toBe('result');
+            expect(result[0].syntaxType).toBe('ExpectedType');
+            expect(result[0].paramsType).toStrictEqual(['missing']);
+        });
+
+        test('should match function result by standard names', () => {
+            const variant = {
+                variant: 'test',
+                parameters: [],
+                returnType: { type: 'ExpectedType' }
+            };
+            const params = [
+                ['outputParam', 'Type1', '<-', 'Description1'],
+                ['Function result', 'ExpectedType', '<-', 'Description2']
+            ];
+
+            const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any));
+
+            expect(result).toHaveLength(0);
+        });
+
+        test('should detect function result type mismatch among output parameters', () => {
+            const variant = {
+                variant: 'test',
+                parameters: [],
+                returnType: { type: 'ExpectedType' }
+            };
+            const params = [
+                ['outputParam', 'Type1', '<-', 'Description1'],
+                ['result', 'WrongType', '<-', 'Description2']
+            ];
+
+            const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any));
+
+            expect(result).toHaveLength(1);
+            expect(result[0].name).toBe('Function result');
+            expect(result[0].syntaxType).toBe('ExpectedType');
+            expect(result[0].paramsType).toStrictEqual(['WrongType']);
         });
     });
 

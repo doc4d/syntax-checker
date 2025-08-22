@@ -83,14 +83,14 @@ describe('SyntaxChecker Command Validation', () => {
         it('should correctly identify output parameters', () => {
             const params = [
                 ['param1', 'Text', '->', 'Input parameter'],
-                ['Result', 'Number', '<-', 'Output parameter'],
-                ['error', 'Boolean', '<-', 'Output parameter (HTML arrow)']
+                ['Result', 'Number', '<-', 'Function result parameter'],
+                ['error', 'Boolean', '<-', 'Output parameter (not function result)']
             ] as any[];
 
             const actualParamNames = checker.getInputParameterNames(checker.parseParams(params));
             expect(actualParamNames).toContain('param1');
-            expect(actualParamNames).not.toContain('result'); // Result should be excluded
-            expect(actualParamNames).not.toContain('error');
+            expect(actualParamNames).not.toContain('result'); // Result should be excluded as it's the function result
+            expect(actualParamNames).toContain('error'); // Error should be included as it's an output parameter, not function result
         });
     });
 
