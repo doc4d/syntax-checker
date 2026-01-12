@@ -140,7 +140,7 @@ describe('Parser', () => {
 
             expect(result).toHaveLength(1);
             expect(result[0].parameters).toHaveLength(1);
-            expect(result[0].parameters[0].spread).toBe(true);
+            expect(result[0].parameters[0].spread).toBe(0);
             expect(result[0].parameters[0].name).toBe('params');
         });
 
@@ -294,7 +294,7 @@ describe('Parser', () => {
 
             expect(result).toHaveLength(1);
             expect(result[0].parameters).toHaveLength(1);
-            expect(result[0].parameters[0].spread).toBe(true);
+            expect(result[0].parameters[0].spread).toBe(0);
             expect(result[0].returnType?.name).toBe('Collection');
         });
     });

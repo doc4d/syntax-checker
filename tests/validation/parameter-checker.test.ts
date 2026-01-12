@@ -21,7 +21,7 @@ describe('ParameterChecker', () => {
             expect(result.parameters[0].name).toBe('param');
             expect(result.parameters[0].type).toBe('Type');
             expect(result.parameters[0].optional).toBe(false);
-            expect(result.parameters[0].spread).toBe(false);
+            expect(result.parameters[0].spread).toBe(-1);
             expect(result.issues).toHaveLength(0);
         });
 
@@ -54,7 +54,7 @@ describe('ParameterChecker', () => {
             expect(result.parameters).toHaveLength(1);
             expect(result.parameters[0].name).toBe('params');
             expect(result.parameters[0].type).toBe('Type');
-            expect(result.parameters[0].spread).toBe(true);
+            expect(result.parameters[0].spread).toBe(0);
         });
     });
 

@@ -32,7 +32,8 @@ export class ParameterChecker {
         const parameters: ParsedParameter[] = [];
         let currentParam: Partial<ParsedParameter> | null = null;
         let optionalDepth = 0;
-        let isSpread = false;
+        let isSpread = -1;
+        let isinTuple = false;
         for (let i = 0; i < nonWhitespaceTokens.length; i++) {
             const token = nonWhitespaceTokens[i];
             const nextToken = nonWhitespaceTokens[i + 1];
@@ -44,6 +45,16 @@ export class ParameterChecker {
 
                 case TokenType.CLOSE_BRACE:
                     optionalDepth--;
+                    break;
+
+                case TokenType.OPEN_PAREN:
+                    isinTuple = true;
+                    isSpread = 0;
+                    break;
+
+                case TokenType.CLOSE_PAREN:
+                    isinTuple = false;
+                    isSpread = -1;
                     break;
 
                 case TokenType.PARAMETER_NAME:
@@ -58,7 +69,12 @@ export class ParameterChecker {
                         optional: optionalDepth > 0,
                         spread: isSpread
                     };
-                    isSpread = false;
+                    if (isinTuple && isSpread >= 0) {
+                        isSpread++;
+                    }
+                    else {
+                        isSpread = -1;
+                    }
                     // Quick check for missing type
                     if (nextToken && nextToken.type !== TokenType.COLON) {
                         if (nextToken.type === TokenType.SEMICOLON ||
@@ -71,7 +87,7 @@ export class ParameterChecker {
                     break;
 
                 case TokenType.SPREAD:
-                    isSpread = true;
+                    isSpread = 0;
                     break;
 
                 case TokenType.TYPE:
@@ -98,7 +114,7 @@ export class ParameterChecker {
                         name: token.value,
                         type: 'operator',
                         optional: optionalDepth > 0,
-                        spread: false
+                        spread: -1
                     });
                     break;
             }
@@ -122,7 +138,7 @@ export class ParameterChecker {
             name: param.name,
             type: param.type || 'unknown',
             optional: param.optional || optionalDepth > 0,
-            spread: param.spread || false
+            spread: param.spread !== undefined ? param.spread : -1
         };
 
         // Only add valid parameters

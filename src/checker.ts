@@ -168,7 +168,7 @@ export class SyntaxChecker {
      */
     validateVariantParameters(variant: ParsedVariant, params: DocumentationParameter[], actualParamNames: string[]): ValidationResult {
         const parsedParamNames = variant.parameters
-            .filter(p => !p.spread) // Don't validate spread parameters
+            .filter(p => p.spread === -1) // Don't validate spread parameters
             .map(p => p.name.toLowerCase());
 
         const lowerCaseParameters = actualParamNames.map(p => p.toLocaleLowerCase());
@@ -197,7 +197,7 @@ export class SyntaxChecker {
         const typeMismatches: TypeMismatch[] = [];
 
         variant.parameters.forEach(parsedParam => {
-            if (parsedParam.name !== '*' && !parsedParam.spread) { // Skip spread parameters
+            if (parsedParam.name !== '*' && parsedParam.spread === -1) { // Skip spread parameters
                 const actualParam = params.find(p => {
                     if (!p || !p.name) return false;
 

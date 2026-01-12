@@ -115,7 +115,10 @@ export interface ParsedParameter {
     name: string;
     type: string;
     optional: boolean;
-    spread: boolean;
+    spread: number; //Possible to have multiple spread in a group
+    // ...(a;b) => spread 0, spread 1
+    // at the end
+    //-1 means there is no spead
 }
 
 /**

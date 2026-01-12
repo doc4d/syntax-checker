@@ -98,8 +98,8 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'param1', type: 'Type1', optional: false, spread: false },
-                    { name: 'param2', type: 'Type2', optional: false, spread: false }
+                    { name: 'param1', type: 'Type1', optional: false, spread: -1 },
+                    { name: 'param2', type: 'Type2', optional: false, spread: -1 }
                 ]
             };
             const params = [
@@ -119,8 +119,8 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'param1', type: 'Type1', optional: false, spread: false },
-                    { name: 'extraParam', type: 'Type2', optional: false, spread: false }
+                    { name: 'param1', type: 'Type1', optional: false, spread: -1 },
+                    { name: 'extraParam', type: 'Type2', optional: false, spread: -1 }
                 ]
             };
             const params = [
@@ -137,8 +137,8 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'param1', type: 'Type1', optional: false, spread: false },
-                    { name: 'spreadParam', type: 'Type2', optional: false, spread: true }
+                    { name: 'param1', type: 'Type1', optional: false, spread: -1 },
+                    { name: 'spreadParam', type: 'Type2', optional: false, spread: 0 }
                 ]
             };
             const params = [
@@ -155,8 +155,8 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: '*', type: 'Type1', optional: false, spread: false },
-                    { name: 'param1', type: 'Type2', optional: false, spread: false }
+                    { name: '*', type: 'Type1', optional: false, spread: -1 },
+                    { name: 'param1', type: 'Type2', optional: false, spread: -1 }
                 ]
             };
             const params = [
@@ -175,7 +175,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'param1', type: 'WrongType', optional: false, spread: false }
+                    { name: 'param1', type: 'WrongType', optional: false, spread: -1 }
                 ]
             };
             const params = [
@@ -194,7 +194,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'param1', type: 'unknown', optional: false, spread: false }
+                    { name: 'param1', type: 'unknown', optional: false, spread: -1 }
                 ]
             };
             const params = [
@@ -210,7 +210,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'param1', type: 'WrongType', optional: false, spread: true }
+                    { name: 'param1', type: 'WrongType', optional: false, spread: 0 }
                 ]
             };
             const params = [
@@ -226,7 +226,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'param1', type: 'Type1', optional: false, spread: false }
+                    { name: 'param1', type: 'Type1', optional: false, spread: -1 }
                 ]
             };
             const params: any[] = [];
@@ -240,8 +240,8 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'outputParam', type: 'WrongType', optional: false, spread: false },
-                    { name: 'result', type: 'AnyType', optional: false, spread: false }
+                    { name: 'outputParam', type: 'WrongType', optional: false, spread: -1 },
+                    { name: 'result', type: 'AnyType', optional: false, spread: -1 }
                 ]
             };
             const params = [
@@ -262,8 +262,8 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'output1', type: 'Type1', optional: false, spread: false },
-                    { name: 'output2', type: 'Type2', optional: false, spread: false }
+                    { name: 'output1', type: 'Type1', optional: false, spread: -1 },
+                    { name: 'output2', type: 'Type2', optional: false, spread: -1 }
                 ]
             };
             const params = [
@@ -478,7 +478,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'param1', type: 'Type1', optional: false, spread: false }
+                    { name: 'param1', type: 'Type1', optional: false, spread: -1 }
                 ],
                 malformation: {
                     isMalformed: false,
@@ -518,7 +518,7 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             const variant = {
                 variant: 'test',
                 parameters: [
-                    { name: 'param1', type: 'WrongType', optional: false, spread: false }
+                    { name: 'param1', type: 'WrongType', optional: false, spread: -1 }
                 ],
                 malformation: {
                     isMalformed: false,
