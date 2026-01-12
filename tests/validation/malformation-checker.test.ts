@@ -17,7 +17,7 @@ describe('MalformationChecker', () => {
             const tokens = tokenizer.tokenize('param : Type { optional');
             const issues = checker.checkMalformations(tokens);
 
-            expect(issues).toHaveLength(1);
+            expect(issues).toHaveLength(2);
             expect(issues[0].message).toContain('Unclosed optional block');
             expect(issues[0].level).toBe(WarningLevel.LEVEL_1);
         });
@@ -26,7 +26,7 @@ describe('MalformationChecker', () => {
             const tokens = tokenizer.tokenize('param : Type }');
             const issues = checker.checkMalformations(tokens);
 
-            expect(issues).toHaveLength(1);
+            expect(issues).toHaveLength(2);
             expect(issues[0].message).toContain('Extra closing brace');
             expect(issues[0].level).toBe(WarningLevel.LEVEL_1);
         });
@@ -35,16 +35,18 @@ describe('MalformationChecker', () => {
             const tokens = tokenizer.tokenize('param : Type { optional }');
             const issues = checker.checkMalformations(tokens);
 
-            expect(issues).toHaveLength(0);
+            expect(issues).toHaveLength(1);
         });
 
         test('should detect multiple unclosed braces', () => {
             const tokens = tokenizer.tokenize('param : Type { optional { nested');
             const issues = checker.checkMalformations(tokens);
 
-            expect(issues).toHaveLength(1);
+            expect(issues).toHaveLength(2);
             expect(issues[0].message).toContain('missing 2 closing braces');
             expect(issues[0].level).toBe(WarningLevel.LEVEL_1);
+            expect(issues[1].id).toContain('MAL013');
+            expect(issues[1].level).toBe(WarningLevel.LEVEL_1);
         });
     });
 

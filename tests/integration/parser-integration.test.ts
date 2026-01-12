@@ -116,6 +116,19 @@ describe('SyntaxChecker Class', () => {
             expect(result[0].parameters[1].type).toBe('Type2');
         });
 
+        it('should parse parameters correctly WP', () => {
+            const parser = new Parser();
+            const result = parser.parseSyntax('**WP SET VIEW PROPERTIES** ( {* ;} *wpArea* : Text, Object ; *wpViewProps* : Object )');
+            expect(result).toHaveLength(1);
+            expect(result[0].parameters).toHaveLength(3);
+            expect(result[0].parameters[0].name).toBe('*');
+            expect(result[0].parameters[0].type).toBe('operator');
+            expect(result[0].parameters[1].name).toBe('wpArea');
+            expect(result[0].parameters[1].type).toBe('Text, Object');
+            expect(result[0].parameters[2].name).toBe('wpViewProps');
+            expect(result[0].parameters[2].type).toBe('Object');
+        });
+
         it('should handle optional parameters', () => {
             const parser = new Parser();
             const result = parser.parseSyntax('test(param1:Type1;{optional:Type2})');

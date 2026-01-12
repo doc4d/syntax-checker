@@ -409,42 +409,36 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
         });
 
         test('should validate "any" type', () => {
-            expect(checker.isTypeValid('any', ['Text'])).toBe(true);
-            expect(checker.isTypeValid('ANY', ['Number'])).toBe(true);
-        });
-
-        test('should handle type equivalences', () => {
-            expect(checker.isTypeValid('Real', ['Number'])).toBe(true);
-            expect(checker.isTypeValid('Number', ['Real'])).toBe(true);
-            expect(checker.isTypeValid('real', ['number'])).toBe(true);
+            expect(checker.isTypeValid('any', ['any'])).toBe(true);
+            expect(checker.isTypeValid('ANY', ['any'])).toBe(true);
         });
 
         test('should validate comma-separated types', () => {
-            expect(checker.isTypeValid('Text', ['Text', 'Number'])).toBe(true);
-            expect(checker.isTypeValid('Number', ['Text', 'Number'])).toBe(true);
+            expect(checker.isTypeValid('Text,Number', ['Text', 'Number'])).toBe(true);
+            expect(checker.isTypeValid('Number,Text', ['Text', 'Number'])).toBe(true);
             expect(checker.isTypeValid('Boolean', ['Text', 'Number'])).toBe(false);
         });
 
         test('should validate forward-slash separated types', () => {
-            expect(checker.isTypeValid('Text', ['Text', 'Number'])).toBe(true);
-            expect(checker.isTypeValid('Number', ['Text', 'Number'])).toBe(true);
+            expect(checker.isTypeValid('Text,Number', ['Text', 'Number'])).toBe(true);
+            expect(checker.isTypeValid('Number,Text', ['Text', 'Number'])).toBe(true);
             expect(checker.isTypeValid('Boolean', ['Text', 'Number'])).toBe(false);
         });
 
         test('should validate "or" keyword separated types', () => {
-            expect(checker.isTypeValid('Text', ['Text', 'Number'])).toBe(true);
-            expect(checker.isTypeValid('Number', ['Text', 'Number'])).toBe(true);
+            expect(checker.isTypeValid('Text,Number', ['Text', 'Number'])).toBe(true);
+            expect(checker.isTypeValid('Number,Text', ['Text', 'Number'])).toBe(true);
             expect(checker.isTypeValid('Boolean', ['Text', 'Number'])).toBe(false);
         });
 
         test('should handle whitespace in type definitions', () => {
-            expect(checker.isTypeValid('Text', ['Text', 'Number'])).toBe(true);
-            expect(checker.isTypeValid('Number', ['Text', 'Number'])).toBe(true);
+            expect(checker.isTypeValid('Text , Number', ['Text', 'Number'])).toBe(true);
+            expect(checker.isTypeValid('Number,Text', ['Text', 'Number'])).toBe(true);
         });
 
         test('should handle mixed separators', () => {
-            expect(checker.isTypeValid('Text', ['Text', 'Number', 'Boolean'])).toBe(true);
-            expect(checker.isTypeValid('Boolean', ['Text', 'Number', 'Boolean'])).toBe(true);
+            expect(checker.isTypeValid('Text,Number,Boolean', ['Text', 'Number', 'Boolean'])).toBe(true);
+            expect(checker.isTypeValid('Boolean,Text,Number', ['Text', 'Number', 'Boolean'])).toBe(true);
         });
     });
 

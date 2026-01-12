@@ -2,11 +2,9 @@ import { Token, TokenType, Tokenizer } from './tokenizer.js';
 import { WarningCode, WARNING_DEFINITIONS, MalformationIssue } from './types.js';
 
 const validTypes = [
-    'object', 'text', 'real', 'any', 'integer', 'collection', 'number', 'date', 'time',
-    'boolean', 'picture', 'number', 'expression', 'blob', 'variant', 'string', 'object',
-    'table', 'expression', 'operator', 'pointer', '4d.session', 'text array', 'field',
-    'variable', 'object array', 'array', 'boolean array', 'integer array', 'real array',
-    'pointer array', 'null'
+    'object', 'text', 'real', 'any', 'integer', 'collection', 'date', 'time', 'boolean', 'picture', 'blob', 'variant', 'pointer',
+    'text array', 'object array', 'boolean array', 'integer array', 'real array', 'time array', 'pointer array', 'array', 'picture array', 'date array',
+    'expression', 'table', 'field', 'variable', 'expression', 'operator', 'null', 'undefined'
 ];
 
 
@@ -154,17 +152,7 @@ export class MalformationChecker {
         return ecmaIdentifierRegex.test(name);
     }
 
-    /**
-     * Check if a type format is valid:
-     * - Letters only (e.g., "String", "Number", "Object")
-     * - Starting with "4D." or "cs." followed by valid identifier (e.g., "4D.Collection", "cs.MyClass")
-     */
-    private isValidTypeFormat(typeName: string): boolean {
-        // Pattern 1: Letters only (basic types)
-        const lettersOnlyRegex = /^[a-zA-Z]+$/;
-        if (lettersOnlyRegex.test(typeName)) {
-            return true;
-        }
+    private isValidSingleType(typeName: string): boolean {
 
         // Pattern 2: 4D. or cs. prefix followed by valid identifier
         const prefixedTypeRegex = /^(4D|cs)(\.([a-zA-Z_$][a-zA-Z0-9_$]*)){1,2}$/;
@@ -182,8 +170,23 @@ export class MalformationChecker {
             return true;
         }
 
-
         return false;
+    }
+
+    /**
+     * Check if a type format is valid:
+     * - Letters only (e.g., "String", "Number", "Object")
+     * - Starting with "4D." or "cs." followed by valid identifier (e.g., "4D.Collection", "cs.MyClass")
+     */
+    private isValidTypeFormat(typeName: string): boolean {
+
+        for (const type of typeName.split(',')) {
+            if (!this.isValidSingleType(type.trim())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

@@ -17,16 +17,16 @@ describe('SyntaxChecker Command Validation', () => {
     describe('Type Mismatch Detection', () => {
         it('should NOT detect type mismatches for compatible types (bug fix validation)', () => {
             const command = {
-                Syntax: '**WEBSOCKET SEND** ( *message* : Text )',
+                Syntax: '**WEBSOCKET SEND** ( *message* : Text,Blob,Object )',
                 Params: [
-                    ['message', 'Text / Blob / Object', '->', 'Message to send']
+                    ['message', 'Text,Blob,Object', '->', 'Message to send']
                 ] as any[]
             };
 
             checker.checkCommand('WEBSOCKET SEND', checker.parseCommand(command));
 
             const output = consoleSpy.mock.calls.map(call => call.join(' ')).join('\n');
-            // Should NOT show type mismatches because Text is compatible with "Text / Blob / Object"
+            // Should NOT show type mismatches because types match exactly
             expect(output).not.toContain('Type mismatches');
         });
 
@@ -34,15 +34,15 @@ describe('SyntaxChecker Command Validation', () => {
             const command = {
                 Syntax: '**.send** ( *message* : Text )<br/>**.send** ( *message* : Blob )<br/>**.send** ( *message* : Object )',
                 Params: [
-                    ['message', 'Text / Blob / Object', '->', 'The message to send']
+                    ['message', 'Text,Blob,Object', '->', 'The message to send']
                 ] as any[]
             };
 
             checker.checkCommand('WebSocket.send', checker.parseCommand(command));
 
             const output = consoleSpy.mock.calls.map(call => call.join(' ')).join('\n');
-            // Should not show type mismatches due to the bug fix
-            expect(output).not.toContain('Type mismatches');
+            // Should show type mismatches - each variant expects exact type match
+            expect(output).toContain('Type mismatches');
         });
 
         it('should detect actual type mismatches', () => {

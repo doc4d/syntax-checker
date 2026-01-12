@@ -291,53 +291,24 @@ export class SyntaxChecker {
      * @param actualType - Type from actual parameters
      * @returns True if type is valid
      */
-    isTypeValid(parsedType: string, actualTypes: string[]): boolean {
-        // Check if the parsed type is valid according to the actual type specification
-        for (const actualType of actualTypes) {
-            const actualTypeLower = actualType.toLowerCase().trim();
-            const parsedTypeLower = parsedType.toLowerCase().trim();
-
-            // If parsed type is 'any', accept any actual type
-            if (parsedTypeLower === 'any') {
-                return true;
-            }
-
-            // If they're exactly the same, it's valid
-            if (actualTypeLower === parsedTypeLower) {
-                return true;
-            }
-
-            // Check for type equivalences
-            const typeEquivalences: { [key: string]: string } = {
-                'real': 'number',
-                'number': 'real'
-            };
-
-            if (typeEquivalences[parsedTypeLower] === actualTypeLower) {
-                return true;
-            }
-
-            // Split actual type by commas, forward slashes, or "or" and check if parsed type is in the list
-            const actualTypeList = actualTypeLower
-                .split(/[,/]|\s+or\s+/)
-                .map(t => t.trim())
-                .filter(t => t.length > 0);
-
-            // Check if parsed type is in the actual type list
-            if (actualTypeList.includes(parsedTypeLower)) {
-                return true;
-            }
-
-            // Check type equivalences within the actual type list
-            for (const actualTypeItem of actualTypeList) {
-                if (typeEquivalences[parsedTypeLower] === actualTypeItem) {
-                    return true;
-                }
-            }
+    isTypeValid(parsedTypes: string, actualTypes: string[]): boolean {
+        const set1 = new Set<string>();
+        for (let parsedType of parsedTypes.split(',')) {
+            set1.add(parsedType.toLocaleLowerCase().trim());
         }
 
+        const set2 = new Set<string>();
+        for (let actualType of actualTypes) {
+            set2.add(actualType.toLocaleLowerCase().trim());
+        }
 
-        return false;
+        if (set1.size !== set2.size) return false;
+
+        for (let item of set1) {
+            if (!set2.has(item)) return false;
+        }
+
+        return true;
     }
 
     /**
@@ -526,7 +497,7 @@ export class SyntaxChecker {
     parseParam(array: string[]): DocumentationParameter {
         return {
             name: array[0],
-            type: array[1].replace('&#124;', ',').split(','),
+            type: array[1].split(',').map(t => t.trim()).filter(t => t),
             direction: this.parseDirection(array[2]),
             description: array[3]
         } as DocumentationParameter;

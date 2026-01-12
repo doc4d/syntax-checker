@@ -32,7 +32,7 @@ export class ParameterChecker {
         const parameters: ParsedParameter[] = [];
         let currentParam: Partial<ParsedParameter> | null = null;
         let optionalDepth = 0;
-
+        let isSpread = false;
         for (let i = 0; i < nonWhitespaceTokens.length; i++) {
             const token = nonWhitespaceTokens[i];
             const nextToken = nonWhitespaceTokens[i + 1];
@@ -56,9 +56,9 @@ export class ParameterChecker {
                         name: token.value,
                         type: 'unknown',
                         optional: optionalDepth > 0,
-                        spread: false
+                        spread: isSpread
                     };
-
+                    isSpread = false;
                     // Quick check for missing type
                     if (nextToken && nextToken.type !== TokenType.COLON) {
                         if (nextToken.type === TokenType.SEMICOLON ||
@@ -71,27 +71,7 @@ export class ParameterChecker {
                     break;
 
                 case TokenType.SPREAD:
-                    const paramName = token.value.startsWith('...') ? token.value.slice(3) : token.value;
-
-                    if (currentParam && currentParam.name) {
-                        this.finishParameter(currentParam, parameters, optionalDepth);
-                    }
-
-                    currentParam = {
-                        name: paramName,
-                        type: 'unknown',
-                        optional: optionalDepth > 0,
-                        spread: true
-                    };
-
-                    if (nextToken && nextToken.type !== TokenType.COLON) {
-                        if (nextToken.type === TokenType.SEMICOLON ||
-                            nextToken.type === TokenType.OPEN_BRACE ||
-                            nextToken.type === TokenType.CLOSE_BRACE ||
-                            i === nonWhitespaceTokens.length - 1) {
-                            this.addIssue(WarningCode.PARAMETER_MISSING_TYPE, paramName);
-                        }
-                    }
+                    isSpread = true;
                     break;
 
                 case TokenType.TYPE:

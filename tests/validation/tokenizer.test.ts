@@ -85,15 +85,20 @@ describe('Tokenizer', () => {
 
             expect(result[0]).toEqual({
                 type: TokenType.SPREAD,
-                value: '...spreadParam',
+                value: '...',
                 position: 0
             });
             expect(result[1]).toEqual({
+                type: TokenType.PARAMETER_NAME,
+                value: 'spreadParam',
+                position: 3
+            });
+            expect(result[2]).toEqual({
                 type: TokenType.COLON,
                 value: ':',
                 position: 15
             });
-            expect(result[2]).toEqual({
+            expect(result[3]).toEqual({
                 type: TokenType.TYPE,
                 value: 'Collection',
                 position: 17
@@ -105,7 +110,7 @@ describe('Tokenizer', () => {
 
             expect(result[0]).toEqual({
                 type: TokenType.SPREAD,
-                value: '...param_name',
+                value: '...',
                 position: 0
             });
         });
@@ -115,7 +120,7 @@ describe('Tokenizer', () => {
 
             expect(result[0]).toEqual({
                 type: TokenType.SPREAD,
-                value: '...param-name.test',
+                value: '...',
                 position: 0
             });
         });
@@ -398,7 +403,7 @@ describe('Tokenizer', () => {
             const result = tokenizer.tokenize('value : any { ; ...valueN : any }');
 
             const spreadToken = result.find(token => token.type === TokenType.SPREAD);
-            expect(spreadToken?.value).toBe('...valueN');
+            expect(spreadToken?.value).toBe('...');
         });
 
         it('should tokenize complex namespace types', () => {

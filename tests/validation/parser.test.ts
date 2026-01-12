@@ -130,7 +130,7 @@ describe('Parser', () => {
             const result = parser.parseSyntax('**myFunction** ( param : Type )');
 
             expect(result).toHaveLength(1);
-            expect(result[0].malformation).toBeUndefined();
+            expect(result[0].malformation?.issues[0].id).contain('MAL013');
         });
     });
 

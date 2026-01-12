@@ -102,6 +102,15 @@ export class Tokenizer {
             return;
         }
 
+        if (char === '.'
+            && this.position + 1 < this.input.length && this.input[this.position + 1] === '.'
+            && this.position + 2 < this.input.length && this.input[this.position + 2] === '.'
+        ) {
+            this.addToken(TokenType.SPREAD, '...', this.position);
+            this.position += 3;
+            return;
+        }
+
         // Handle single character tokens
         switch (char) {
             case ':':
@@ -167,30 +176,14 @@ export class Tokenizer {
     private scanIdentifier(): void {
         const start = this.position;
 
-        // Handle spread operator (...) at the beginning
-        if (this.input[this.position] === '.' &&
-            this.position + 1 < this.input.length && this.input[this.position + 1] === '.' &&
-            this.position + 2 < this.input.length && this.input[this.position + 2] === '.') {
-
-            this.position += 3; // Skip the three dots
-
-            // Continue reading the identifier after spread
-            while (this.position < this.input.length && this.isIdentifierChar(this.input[this.position])) {
-                this.position++;
-            }
-
-            const value = this.input.substring(start, this.position);
-            this.addToken(TokenType.SPREAD, value, start);
-            return;
-        }
-
         // Regular identifier
-        while (this.position < this.input.length && this.isIdentifierChar(this.input[this.position])) {
+        while (this.position < this.input.length
+            && (this.input[this.position] == ' ' || this.input[this.position] == ',' || this.isIdentifierChar(this.input[this.position]))) {
             this.position++;
         }
 
         if (this.position > start) {
-            const value = this.input.substring(start, this.position);
+            const value = this.input.substring(start, this.position).trim();
 
             // Fast context-based type determination using cached context
             const tokenType = this.determineIdentifierTypeFast();
