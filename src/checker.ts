@@ -302,8 +302,6 @@ export class SyntaxChecker {
             set2.add(actualType.toLocaleLowerCase().trim());
         }
 
-        if (set1.size !== set2.size) return false;
-
         for (let item of set1) {
             if (!set2.has(item)) return false;
         }

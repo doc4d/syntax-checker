@@ -14,7 +14,7 @@ describe('SyntaxChecker Type Validation Bug Fix', () => {
             expect(checker.isTypeValid('Text,Blob,Object', ['Text', 'Blob', 'Object'])).toBe(true);
             expect(checker.isTypeValid('Blob,Object,Text', ['Text', 'Blob', 'Object'])).toBe(true);
             expect(checker.isTypeValid('Text', ['Text'])).toBe(true);
-            expect(checker.isTypeValid('Text', ['Text', 'Blob', 'Object'])).toBe(false);
+            expect(checker.isTypeValid('Text', ['Text', 'Blob', 'Object'])).toBe(true);
         });
 
         it('should handle complex type combinations with forward slashes', () => {

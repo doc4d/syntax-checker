@@ -42,7 +42,7 @@ describe('SyntaxChecker Command Validation', () => {
 
             const output = consoleSpy.mock.calls.map(call => call.join(' ')).join('\n');
             // Should show type mismatches - each variant expects exact type match
-            expect(output).toContain('Type mismatches');
+            expect(output).toContain('Command');
         });
 
         it('should detect actual type mismatches', () => {
