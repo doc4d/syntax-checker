@@ -121,13 +121,6 @@ export class MalformationChecker {
     private checkStructuralIssues(tokens: Token[]): void {
         // Check for malformed parameter names and types
         for (const token of tokens) {
-            if (token.type === TokenType.PARAMETER_NAME) {
-                // Check ECMA compliance for parameter names
-                if (!this.isEcmaCompliantIdentifier(token.value)) {
-                    this.addIssue(WarningCode.NON_ECMA_PARAMETER_NAME, token.value);
-                }
-            }
-
             // Check for invalid characters and format in type definitions
             if (token.type === TokenType.TYPE) {
 
@@ -142,24 +135,12 @@ export class MalformationChecker {
         // as they are already called by the main checkMalformations method
     }
 
-    /**
-     * Check if a parameter name is ECMA-compliant (valid JavaScript identifier)
-     */
-    private isEcmaCompliantIdentifier(name: string): boolean {
-        // Basic check: must start with letter, $, or _, followed by letters, digits, $, or _
-        const ecmaIdentifierRegex = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
-
-        return ecmaIdentifierRegex.test(name);
-    }
-
     private isValidSingleType(typeName: string): boolean {
 
         // Pattern 2: 4D. or cs. prefix followed by valid identifier
         const prefixedTypeRegex = /^(4D|cs)(\.([a-zA-Z_$][a-zA-Z0-9_$]*)){1,2}$/;
-        const match = typeName.match(prefixedTypeRegex);
-        if (match) {
-            const identifier = match[2].slice(1);
-            return this.isEcmaCompliantIdentifier(identifier);
+        if (prefixedTypeRegex.test(typeName)) {
+            return true;
         }
 
 

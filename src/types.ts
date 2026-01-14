@@ -28,7 +28,6 @@ export enum WarningCode {
     UNEXPECTED_SEMICOLON_AFTER_COLON = 'MAL007',
     UNEXPECTED_CLOSING_BRACE_AFTER_COLON = 'MAL008',
     MISSING_CLOSING_PARENTHESIS = 'MAL011',
-    NON_ECMA_PARAMETER_NAME = 'MAL012',
     INVALID_TYPE_FORMAT = 'MAL013',
 
     // Type issues (Level 2)
@@ -75,10 +74,6 @@ export const WARNING_DEFINITIONS = {
     [WarningCode.MISSING_CLOSING_PARENTHESIS]: {
         level: WarningLevel.LEVEL_1,
         message: () => 'Missing closing parenthesis'
-    },
-    [WarningCode.NON_ECMA_PARAMETER_NAME]: {
-        level: WarningLevel.LEVEL_1,
-        message: (paramName: string) => `Parameter name '${paramName}' is not ECMA-compliant (must be valid JavaScript identifier)`
     },
     [WarningCode.INVALID_TYPE_FORMAT]: {
         level: WarningLevel.LEVEL_1,
