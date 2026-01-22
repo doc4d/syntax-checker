@@ -28,7 +28,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['Result', 'Type3', '<-', 'Description3']
             ];
 
-            const result = checker.getInputParameterNames(checker.parseParams(params));
+            // Provide syntax with return type to indicate this is a function
+            const syntax = 'functionName ( param1 : Type1 ; param2 : Type2 ) : Type3';
+            const result = checker.getInputParameterNames(checker.parseParams(params), syntax);
 
             expect(result).toEqual(['param1', 'param2']);
         });
@@ -40,7 +42,9 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['Result', 'Type3', '<-', 'Description3']
             ];
 
-            const result = checker.getInputParameterNames(checker.parseParams(params));
+            // Provide syntax with return type to indicate this is a function
+            const syntax = 'functionName ( param1 : Type1 ; param2 : Type2 ) : Type3';
+            const result = checker.getInputParameterNames(checker.parseParams(params), syntax);
 
             expect(result).toEqual(['param1', 'param2']);
         });
@@ -69,13 +73,16 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
         test('should include output parameters but exclude function result', () => {
             const params = [
                 ['inputParam', 'Type1', '&#8594;', 'Description1'],
-                ['outputParam', 'Type2', '<-', 'Description2'],
-                ['Result', 'Type3', '<-', 'Description3'],
-                ['Function result', 'Type4', '<-', 'Description4']
+                ['outputParam', 'Type2', '<->', 'Description2'], // Use IO direction for output parameter
+                ['Result', 'Type3', '<-', 'Description3'], // Return direction - function result
+                ['Function result', 'Type4', '<-', 'Description4'] // Return direction - function result
             ];
 
-            const result = checker.getInputParameterNames(checker.parseParams(params));
+            // Provide syntax with return type - Return-direction params are function results
+            const syntax = 'functionName ( inputParam : Type1 ) : Type3';
+            const result = checker.getInputParameterNames(checker.parseParams(params), syntax);
 
+            // inputParam is input, outputParam is IO (included), Result/Function result are function returns (excluded)
             expect(result).toEqual(['inputparam', 'outputparam']);
         });
 
@@ -87,9 +94,11 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ['result', 'Type4', '<-', 'Description4']
             ];
 
-            const result = checker.getInputParameterNames(checker.parseParams(params));
+            // Command syntax (no return type) - all output parameters including 'result' should be included
+            const syntax = 'COMMAND NAME ( input1 : Type1 )';
+            const result = checker.getInputParameterNames(checker.parseParams(params), syntax);
 
-            expect(result).toEqual(['input1', 'output1', 'output2']);
+            expect(result).toEqual(['input1', 'output1', 'output2', 'result']);
         });
     });
 
@@ -245,11 +254,13 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 ]
             };
             const params = [
-                ['outputParam', 'CorrectType', '<-', 'Description1'],
-                ['result', 'FunctionResultType', '<-', 'Description2']
+                ['outputParam', 'CorrectType', '<->', 'Description1'], // Use IO direction
+                ['result', 'FunctionResultType', '<-', 'Description2'] // Return direction - function result
             ];
 
-            const result = checker.checkTypeMismatches(variant as any, checker.parseParams(params));
+            // Provide syntax with return type so 'result' with Return direction is excluded as function result
+            const syntax = 'functionName ( ) : FunctionResultType';
+            const result = checker.checkTypeMismatches(variant as any, checker.parseParams(params), syntax);
 
             // Should detect type mismatch for outputParam but ignore 'result' as it's a function result
             expect(result).toHaveLength(1);
@@ -368,11 +379,12 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 returnType: { type: 'ExpectedType' }
             };
             const params = [
-                ['outputParam', 'Type1', '<-', 'Description1'],
                 ['Function result', 'ExpectedType', '<-', 'Description2']
             ];
 
-            const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any));
+            // Provide syntax with return type to indicate this is a function
+            const syntax = 'functionName ( ) : ExpectedType';
+            const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any), syntax);
 
             expect(result).toHaveLength(0);
         });
@@ -384,14 +396,15 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
                 returnType: { type: 'ExpectedType' }
             };
             const params = [
-                ['outputParam', 'Type1', '<-', 'Description1'],
                 ['result', 'WrongType', '<-', 'Description2']
             ];
 
-            const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any));
+            // Provide syntax with return type to indicate this is a function
+            const syntax = 'functionName ( ) : ExpectedType';
+            const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any), syntax);
 
             expect(result).toHaveLength(1);
-            expect(result[0].name).toBe('Function result');
+            expect(result[0].name).toBe('result');
             expect(result[0].syntaxType).toBe('ExpectedType');
             expect(result[0].paramsType).toStrictEqual(['WrongType']);
         });

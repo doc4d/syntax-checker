@@ -110,15 +110,46 @@ export class SyntaxChecker {
     }
 
     /**
-     * Check if a parameter is a function result parameter
-     * @param param - Parameter to check
-     * @returns True if parameter is a function result (Result or Function result with Direction.Return)
+     * Check if the syntax declares a return type
+     * @param syntax - Command syntax
+     * @returns True if syntax has a return type declaration (e.g., ") : Type")
      */
-    private isFunctionResult(param: DocumentationParameter): boolean {
-        const name = param.name.toLowerCase();
+    private syntaxHasReturnType(syntax: string): boolean {
+        // Check for return type pattern: ) : Type at the end
+        // This matches patterns like:
+        // - "functionName ( params ) : ReturnType"
+        // - "functionName ( params ) : cs.ViewPro.TableTheme"
+        // - "functionName ( params ) : 4D.Object"
+        // Type can be: simple (Text), namespaced (cs.Class), or dotted (4D.Object, cs.ViewPro.TableTheme)
+        return /\)\s*:\s*[\w.]+\s*$/.test(syntax.trim());
+    }
+
+    /**
+     * Check if a parameter represents the function's return value
+     * This is used to exclude function results from regular parameter validation
+     * @param param - Parameter to check
+     * @param syntax - Command syntax to check if it declares a return type
+     * @returns True if parameter is a function result that should be excluded from parameter validation
+     */
+    private isFunctionResult(param: DocumentationParameter, syntax?: string): boolean {
         const direction = param.direction;
-        return direction === Direction.Return &&
-            (name === 'result' || name === 'function result');
+
+        // Must be a Return direction parameter
+        if (direction !== Direction.Return) {
+            return false;
+        }
+
+        // If no syntax provided, cannot determine - default to not excluding it
+        if (!syntax) {
+            return false;
+        }
+
+        // A Return-direction parameter is a function result if:
+        // The syntax declares a return type (e.g., "functionName(...) : Type")
+        // This structurally distinguishes:
+        // - Functions: "Abs(x : Real) : Real" - has return type, Return param is function result
+        // - Commands with output: "EXECUTE METHOD(name : Text ; result : Variable)" - no return type, Return param is regular output
+        return this.syntaxHasReturnType(syntax);
     }
 
     /**
@@ -140,9 +171,10 @@ export class SyntaxChecker {
     /**
      * Get input parameter names (excluding return parameters)
      * @param params - Parameter array from documentation
+     * @param syntax - Command syntax to determine if it's a function
      * @returns Array of input parameter names
      */
-    getInputParameterNames(params: DocumentationParameter[]): string[] {
+    getInputParameterNames(params: DocumentationParameter[], syntax?: string): string[] {
         if (!params || params.length === 0) return [];
 
         return params
@@ -153,7 +185,7 @@ export class SyntaxChecker {
                 // But include other Direction.Return parameters as they are output parameters, not function results
                 return (
                     direction !== undefined &&
-                    !this.isFunctionResult(param)
+                    !this.isFunctionResult(param, syntax)
                 );
             })
             .map(param => param.name.toLowerCase());
@@ -164,9 +196,10 @@ export class SyntaxChecker {
      * @param variant - Parsed variant object
      * @param params - Actual parameter array
      * @param actualParamNames - Array of actual parameter names
+     * @param syntax - Command syntax to determine if it's a function
      * @returns Validation result with extraParams and typeMismatches
      */
-    validateVariantParameters(variant: ParsedVariant, params: DocumentationParameter[], actualParamNames: string[]): ValidationResult {
+    validateVariantParameters(variant: ParsedVariant, params: DocumentationParameter[], actualParamNames: string[], syntax?: string): ValidationResult {
         const parsedParamNames = variant.parameters
             .filter(p => p.spread === -1) // Don't validate spread parameters
             .map(p => p.name.toLowerCase());
@@ -179,10 +212,10 @@ export class SyntaxChecker {
         );
 
         // Check for type mismatches
-        const typeMismatches = this.checkTypeMismatches(variant, params);
+        const typeMismatches = this.checkTypeMismatches(variant, params, syntax);
 
         // Check for return type mismatches
-        const returnTypeMismatches = this.checkReturnTypeMismatches(variant, params);
+        const returnTypeMismatches = this.checkReturnTypeMismatches(variant, params, syntax);
 
         return { extraParams, typeMismatches, returnTypeMismatches };
     }
@@ -191,9 +224,10 @@ export class SyntaxChecker {
      * Check for type mismatches between parsed and actual parameters
      * @param variant - Parsed variant object
      * @param params - Actual parameter array
+     * @param syntax - Command syntax to determine if it's a function
      * @returns Array of type mismatches
      */
-    checkTypeMismatches(variant: ParsedVariant, params: DocumentationParameter[]): TypeMismatch[] {
+    checkTypeMismatches(variant: ParsedVariant, params: DocumentationParameter[], syntax?: string): TypeMismatch[] {
         const typeMismatches: TypeMismatch[] = [];
 
         variant.parameters.forEach(parsedParam => {
@@ -205,7 +239,7 @@ export class SyntaxChecker {
                     const parsedName = parsedParam.name.toLowerCase();
 
                     // Match by name but exclude function result parameters
-                    return paramName === parsedName && !this.isFunctionResult(p);
+                    return paramName === parsedName && !this.isFunctionResult(p, syntax);
                 });
 
                 if (actualParam && parsedParam.type !== 'unknown') {
@@ -230,9 +264,10 @@ export class SyntaxChecker {
      * Check for return type mismatches between parsed and actual parameters
      * @param variant - Parsed variant object
      * @param params - Actual parameter array
+     * @param syntax - Command syntax to determine if it declares a return type
      * @returns Array of return type mismatches
      */
-    checkReturnTypeMismatches(variant: ParsedVariant, params: DocumentationParameter[]): TypeMismatch[] {
+    checkReturnTypeMismatches(variant: ParsedVariant, params: DocumentationParameter[], syntax?: string): TypeMismatch[] {
         const returnTypeMismatches: TypeMismatch[] = [];
 
         // Check if the parsed variant has return type information
@@ -240,18 +275,26 @@ export class SyntaxChecker {
             return returnTypeMismatches;
         }
 
-        // Find the actual return type parameter (Result, Function result, or by specific name)
+        // Find the actual return type parameter
+        // If syntax declares a return type, look for ANY parameter with Return direction
+        // Otherwise, match by specific name if provided in the variant
         const actualReturnParam = params.find(p => {
             const direction = p.direction;
             const name = p.name.toLowerCase();
 
-            // Check if it's the function result by name and direction
-            if (this.isFunctionResult(p)) {
+            // Not a return direction parameter
+            if (direction !== Direction.Return) {
+                return false;
+            }
+
+            // If syntax declares a return type, any Return parameter matches
+            if (syntax && this.syntaxHasReturnType(syntax)) {
                 return true;
             }
 
-            // If variant has a specific return name, match by name and direction
-            if (variant.returnType!.name && direction === Direction.Return &&
+            // Otherwise, match by specific name if variant provides one
+            // This handles edge cases like named output parameters
+            if (variant.returnType!.name &&
                 name === variant.returnType!.name.toLowerCase()) {
                 return true;
             }
@@ -275,7 +318,7 @@ export class SyntaxChecker {
 
             if (!this.isTypeValid(syntaxType, actualType)) {
                 returnTypeMismatches.push({
-                    name: variant.returnType!.name || 'Function result',
+                    name: variant.returnType!.name || actualReturnParam.name,
                     syntaxType: syntaxType,
                     paramsType: actualType
                 });
@@ -340,9 +383,10 @@ export class SyntaxChecker {
      * @param variant - Parsed variant object
      * @param params - Actual parameter array (can be empty/undefined)
      * @param actualParamNames - Array of actual parameter names (can be empty)
+     * @param syntax - Command syntax to determine if it's a function
      * @returns True if variant has any issues at current warning level
      */
-    private hasVariantIssues(variant: ParsedVariant, params: DocumentationParameter[] = [], actualParamNames: string[] = []): boolean {
+    private hasVariantIssues(variant: ParsedVariant, params: DocumentationParameter[] = [], actualParamNames: string[] = [], syntax?: string): boolean {
         // Always check for malformations first
         const hasMalformation = this.hasRelevantMalformation(variant);
 
@@ -351,7 +395,7 @@ export class SyntaxChecker {
             return hasMalformation;
         }
 
-        const { extraParams, typeMismatches, returnTypeMismatches } = this.validateVariantParameters(variant, params, actualParamNames);
+        const { extraParams, typeMismatches, returnTypeMismatches } = this.validateVariantParameters(variant, params, actualParamNames, syntax);
         const hasParameterErrors = extraParams.length > 0 || typeMismatches.length > 0 || returnTypeMismatches.length > 0;
 
         return hasMalformation || hasParameterErrors;
@@ -363,8 +407,9 @@ export class SyntaxChecker {
      * @param index - Variant index
      * @param params - Actual parameter array
      * @param actualParamNames - Array of actual parameter names
+     * @param syntax - Command syntax to determine if it's a function
      */
-    outputVariantAnalysis(variant: ParsedVariant, index: number, params: DocumentationParameter[], actualParamNames: string[]): void {
+    outputVariantAnalysis(variant: ParsedVariant, index: number, params: DocumentationParameter[], actualParamNames: string[], syntax?: string): void {
         console.log(`\nVariant ${index + 1} analysis:`);
         const parsedParamNames = variant.parameters.map(p => p.name.toLowerCase());
         console.log('Parsed parameter names:', parsedParamNames);
@@ -379,7 +424,7 @@ export class SyntaxChecker {
             });
         }
 
-        const { extraParams, typeMismatches, returnTypeMismatches } = this.validateVariantParameters(variant, params, actualParamNames);
+        const { extraParams, typeMismatches, returnTypeMismatches } = this.validateVariantParameters(variant, params, actualParamNames, syntax);
 
         if (extraParams.length > 0) {
             console.log(`⚠️  Extra/Invalid parameters: ${extraParams.join(', ')}`);
@@ -420,12 +465,12 @@ export class SyntaxChecker {
 
         // Check if there are any errors/warnings
         let hasErrors = false;
-        const actualParamNames = params && params.length > 0 ? this.getInputParameterNames(params) : [];
+        const actualParamNames = params && params.length > 0 ? this.getInputParameterNames(params, syntax) : [];
         const allParamInfo = params && params.length > 0 ? this.extractActualParamNames(params) : [];
 
         // Check each parsed variant for issues (malformations and parameter errors)
         parsedParams.forEach((variant) => {
-            if (this.hasVariantIssues(variant, params, actualParamNames)) {
+            if (this.hasVariantIssues(variant, params, actualParamNames, syntax)) {
                 hasErrors = true;
             }
         });
@@ -444,7 +489,7 @@ export class SyntaxChecker {
 
                 // Check each parsed variant
                 parsedParams.forEach((variant, index) => {
-                    this.outputVariantAnalysis(variant, index, params, actualParamNames);
+                    this.outputVariantAnalysis(variant, index, params, actualParamNames, syntax);
                 });
             } else {
                 console.log('\nNo Params field found for this command');

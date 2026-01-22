@@ -4,7 +4,7 @@ import { WarningCode, WARNING_DEFINITIONS, MalformationIssue } from './types.js'
 const validTypes = [
     'object', 'text', 'real', 'any', 'integer', 'collection', 'date', 'time', 'boolean', 'picture', 'blob', 'variant', 'pointer',
     'text array', 'object array', 'boolean array', 'integer array', 'real array', 'time array', 'pointer array', 'array', 'picture array', 'date array',
-    'expression', 'table', 'field', 'variable', 'expression', 'operator', 'null', 'undefined'
+    'expression', 'table', 'field', 'variable', 'expression', 'operator', 'null', 'undefined', 'comparator'
 ];
 
 
