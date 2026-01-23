@@ -176,6 +176,16 @@ describe('Tokenizer', () => {
                 position: 0
             });
         });
+
+        it('should treat comparator names as identifiers', () => {
+            const result = tokenizer.tokenize('>_or_< : Comparator');
+
+            expect(result[0]).toEqual({
+                type: TokenType.PARAMETER_NAME,
+                value: '>_or_<',
+                position: 0
+            });
+        });
     });
 
     describe('Complex Types', () => {

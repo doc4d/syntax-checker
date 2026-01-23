@@ -177,6 +177,15 @@ describe('ParameterChecker', () => {
             expect(result.parameters[2].name).toBe('param.name');
         });
 
+        test('should treat comparator markers as parameter names', () => {
+            const tokens = tokenizer.tokenize('>_or_< : Comparator');
+            const result = checker.checkParameters(tokens);
+
+            expect(result.parameters).toHaveLength(1);
+            expect(result.parameters[0].name).toBe('>_or_<');
+            expect(result.parameters[0].type).toBe('Comparator');
+        });
+
         test('should handle complex type names', () => {
             const tokens = tokenizer.tokenize('param : Collection<Object> ; param2 : [Type]');
             const result = checker.checkParameters(tokens);

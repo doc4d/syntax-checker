@@ -13,9 +13,7 @@ export enum TokenType {
     ARROW = 'arrow',
     OPERATOR = 'operator',
     SPREAD = 'spread',
-    ESCAPED_ASTERISK = 'escaped_asterisk',
-    LT = '<',
-    GT = '>'
+    ESCAPED_ASTERISK = 'escaped_asterisk'
 }
 
 /**
@@ -139,14 +137,6 @@ export class Tokenizer {
                 break;
             case '*':
                 this.addToken(TokenType.OPERATOR, char, this.position);
-                this.position++;
-                break;
-            case '<':
-                this.addToken(TokenType.LT, char, this.position);
-                this.position++;
-                break;
-            case '>':
-                this.addToken(TokenType.GT, char, this.position);
                 this.position++;
                 break;
             default:

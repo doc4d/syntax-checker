@@ -107,8 +107,6 @@ export class ParameterChecker {
                     break;
 
                 case TokenType.OPERATOR:
-                case TokenType.GT:
-                case TokenType.LT:
                 case TokenType.ESCAPED_ASTERISK:
                     parameters.push({
                         name: token.value,
