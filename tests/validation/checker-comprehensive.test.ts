@@ -100,6 +100,20 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
 
             expect(result).toEqual(['input1', 'output1', 'output2', 'result']);
         });
+
+        test('should keep auxiliary return parameters when syntax declares return type', () => {
+            const params = [
+                ['array', 'Array', '&#8594;', 'Array to search'],
+                ['posFirst', 'Integer', '<-', 'First match position'],
+                ['posLast', 'Integer', '<-', 'Last match position'],
+                ['Function result', 'Boolean', '<-', 'True if value found']
+            ];
+
+            const syntax = 'Find in sorted array ( array : Array ) : Boolean';
+            const result = checker.getInputParameterNames(checker.parseParams(params), syntax);
+
+            expect(result).toEqual(['array', 'posfirst', 'poslast']);
+        });
     });
 
     describe('Variant Parameter Validation', () => {
@@ -407,6 +421,25 @@ describe('SyntaxChecker - Comprehensive Coverage', () => {
             expect(result[0].name).toBe('result');
             expect(result[0].syntaxType).toBe('ExpectedType');
             expect(result[0].paramsType).toStrictEqual(['WrongType']);
+        });
+
+        test('should match function result when additional return parameters exist', () => {
+            const variant = {
+                variant: 'test',
+                parameters: [],
+                returnType: { type: 'Boolean' }
+            };
+            const params = [
+                ['array', 'Array', '&#8594;', 'Array to search'],
+                ['posFirst', 'Integer', '<-', 'First match position'],
+                ['posLast', 'Integer', '<-', 'Last match position'],
+                ['Function result', 'Boolean', '<-', 'True if value found']
+            ];
+
+            const syntax = 'Find in sorted array ( array : Array ) : Boolean';
+            const result = checker.checkReturnTypeMismatches(variant as any, checker.parseParams(params as any), syntax);
+
+            expect(result).toHaveLength(0);
         });
     });
 

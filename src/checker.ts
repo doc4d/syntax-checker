@@ -62,6 +62,14 @@ interface ValidationResult {
     returnTypeMismatches: TypeMismatch[];
 }
 
+const STANDARD_FUNCTION_RESULT_NAMES = new Set([
+    'result',
+    'function result',
+    'functionresult',
+    'return value',
+    'returnvalue'
+]);
+
 /**
  * SyntaxChecker class for validating 4D documentation syntax
  * Handles validation of syntax definitions against actual parameters
@@ -131,7 +139,11 @@ export class SyntaxChecker {
      * @param syntax - Command syntax to check if it declares a return type
      * @returns True if parameter is a function result that should be excluded from parameter validation
      */
-    private isFunctionResult(param: DocumentationParameter, syntax?: string): boolean {
+    private normalizeName(name?: string): string {
+        return (name || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    private isFunctionResult(param: DocumentationParameter, syntax?: string, allParams?: DocumentationParameter[]): boolean {
         const direction = param.direction;
 
         // Must be a Return direction parameter
@@ -140,16 +152,24 @@ export class SyntaxChecker {
         }
 
         // If no syntax provided, cannot determine - default to not excluding it
-        if (!syntax) {
+        if (!syntax || !this.syntaxHasReturnType(syntax)) {
             return false;
         }
 
-        // A Return-direction parameter is a function result if:
-        // The syntax declares a return type (e.g., "functionName(...) : Type")
-        // This structurally distinguishes:
-        // - Functions: "Abs(x : Real) : Real" - has return type, Return param is function result
-        // - Commands with output: "EXECUTE METHOD(name : Text ; result : Variable)" - no return type, Return param is regular output
-        return this.syntaxHasReturnType(syntax);
+        const normalized = this.normalizeName(param.name);
+
+        if (normalized && STANDARD_FUNCTION_RESULT_NAMES.has(normalized)) {
+            return true;
+        }
+
+        if (allParams) {
+            const returnParams = allParams.filter(p => p?.direction === Direction.Return);
+            if (returnParams.length === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -185,7 +205,7 @@ export class SyntaxChecker {
                 // But include other Direction.Return parameters as they are output parameters, not function results
                 return (
                     direction !== undefined &&
-                    !this.isFunctionResult(param, syntax)
+                    !this.isFunctionResult(param, syntax, params)
                 );
             })
             .map(param => param.name.toLowerCase());
@@ -239,7 +259,7 @@ export class SyntaxChecker {
                     const parsedName = parsedParam.name.toLowerCase();
 
                     // Match by name but exclude function result parameters
-                    return paramName === parsedName && !this.isFunctionResult(p, syntax);
+                    return paramName === parsedName && !this.isFunctionResult(p, syntax, params);
                 });
 
                 if (actualParam && parsedParam.type !== 'unknown') {
@@ -287,8 +307,8 @@ export class SyntaxChecker {
                 return false;
             }
 
-            // If syntax declares a return type, any Return parameter matches
-            if (syntax && this.syntaxHasReturnType(syntax)) {
+            // If syntax declares a return type, match only actual function result parameters
+            if (this.isFunctionResult(p, syntax, params)) {
                 return true;
             }
 
