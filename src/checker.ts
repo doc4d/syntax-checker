@@ -123,13 +123,15 @@ export class SyntaxChecker {
      * @returns True if syntax has a return type declaration (e.g., ") : Type")
      */
     private syntaxHasReturnType(syntax: string): boolean {
-        // Check for return type pattern: ) : Type at the end
+        // Check for return type pattern: ) : Type
         // This matches patterns like:
         // - "functionName ( params ) : ReturnType"
         // - "functionName ( params ) : cs.ViewPro.TableTheme"
         // - "functionName ( params ) : 4D.Object"
+        // - Multiple variants separated by <br/>
         // Type can be: simple (Text), namespaced (cs.Class), or dotted (4D.Object, cs.ViewPro.TableTheme)
-        return /\)\s*:\s*[\w.]+\s*$/.test(syntax.trim());
+        // Look for ) : Type pattern anywhere in the syntax (not just at the end)
+        return /\)\s*:\s*[\w.]+/.test(syntax);
     }
 
     /**
@@ -291,58 +293,58 @@ export class SyntaxChecker {
         const returnTypeMismatches: TypeMismatch[] = [];
 
         // Check if the parsed variant has return type information
-        if (!variant.returnType) {
+        if (!variant.returnType || !variant.returnType.type) {
             return returnTypeMismatches;
         }
 
-        // Find the actual return type parameter
-        // If syntax declares a return type, look for ANY parameter with Return direction
-        // Otherwise, match by specific name if provided in the variant
-        const actualReturnParam = params.find(p => {
-            const direction = p.direction;
-            const name = p.name.toLowerCase();
+        // Find all return direction parameters
+        const returnParams = params.filter(p => p.direction === Direction.Return);
 
-            // Not a return direction parameter
-            if (direction !== Direction.Return) {
-                return false;
-            }
-
-            // If syntax declares a return type, match only actual function result parameters
-            if (this.isFunctionResult(p, syntax, params)) {
-                return true;
-            }
-
-            // Otherwise, match by specific name if variant provides one
-            // This handles edge cases like named output parameters
-            if (variant.returnType!.name &&
-                name === variant.returnType!.name.toLowerCase()) {
-                return true;
-            }
-
-            return false;
-        });
-
-        // If we have a return type in syntax but no matching return parameter
-        if (variant.returnType!.type && !actualReturnParam) {
+        // If there are no return parameters, report missing
+        if (returnParams.length === 0) {
             returnTypeMismatches.push({
-                name: variant.returnType!.name || 'Function result',
-                syntaxType: variant.returnType!.type,
+                name: variant.returnType.name || 'Function result',
+                syntaxType: variant.returnType.type,
                 paramsType: ['missing']
             });
+            return returnTypeMismatches;
+        }
+
+        // Find the matching return parameter
+        // First, try to match by name if the variant provides one
+        let actualReturnParam: DocumentationParameter | undefined;
+
+        if (variant.returnType.name) {
+            // Named return value (e.g., -> $status : Integer)
+            actualReturnParam = returnParams.find(p =>
+                p.name.toLowerCase() === variant.returnType!.name!.toLowerCase()
+            );
+        } else {
+            // Unnamed return value (e.g., ) : Boolean)
+            // Find the function result parameter
+            actualReturnParam = returnParams.find(p => this.isFunctionResult(p, syntax, params));
+        }
+
+        // If we have a return type in syntax but no matching return parameter
+        if (!actualReturnParam) {
+            returnTypeMismatches.push({
+                name: variant.returnType.name || 'Function result',
+                syntaxType: variant.returnType.type,
+                paramsType: ['missing']
+            });
+            return returnTypeMismatches;
         }
 
         // If we have both syntax and actual return types, validate them
-        if (variant.returnType!.type && actualReturnParam) {
-            const actualType = actualReturnParam.type;
-            const syntaxType = variant.returnType!.type;
+        const actualType = actualReturnParam.type;
+        const syntaxType = variant.returnType.type;
 
-            if (!this.isTypeValid(syntaxType, actualType)) {
-                returnTypeMismatches.push({
-                    name: variant.returnType!.name || actualReturnParam.name,
-                    syntaxType: syntaxType,
-                    paramsType: actualType
-                });
-            }
+        if (!this.isTypeValid(syntaxType, actualType)) {
+            returnTypeMismatches.push({
+                name: variant.returnType.name || actualReturnParam.name,
+                syntaxType: syntaxType,
+                paramsType: actualType
+            });
         }
 
         return returnTypeMismatches;
