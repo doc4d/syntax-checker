@@ -124,6 +124,21 @@ describe('Tokenizer', () => {
                 position: 0
             });
         });
+
+        it('should tokenize group variadic as SPREAD + OPEN_PAREN', () => {
+            const result = tokenizer.tokenize('...(a : Text ; b : Integer)');
+
+            expect(result[0]).toEqual({
+                type: TokenType.SPREAD,
+                value: '...',
+                position: 0
+            });
+            expect(result[1]).toEqual({
+                type: TokenType.OPEN_PAREN,
+                value: '(',
+                position: 3
+            });
+        });
     });
 
     describe('Complex Parameter Names', () => {
@@ -178,7 +193,7 @@ describe('Tokenizer', () => {
         });
 
         it('should treat comparator names as identifiers', () => {
-            const result = tokenizer.tokenize('>_or_< : Comparator');
+            const result = tokenizer.tokenize('>_or_< : >, <');
 
             expect(result[0]).toEqual({
                 type: TokenType.PARAMETER_NAME,

@@ -48,8 +48,9 @@ export class ParameterChecker {
                     break;
 
                 case TokenType.OPEN_PAREN:
-                    isinTuple = true;
-                    isSpread = 0;
+                    if (isSpread === 0) {
+                        isinTuple = true;
+                    }
                     break;
 
                 case TokenType.CLOSE_PAREN:
@@ -76,11 +77,11 @@ export class ParameterChecker {
                         isSpread = -1;
                     }
                     // Quick check for missing type
-                    if (nextToken && nextToken.type !== TokenType.COLON) {
-                        if (nextToken.type === TokenType.SEMICOLON ||
+                    if (!nextToken || nextToken.type !== TokenType.COLON) {
+                        if (!nextToken ||
+                            nextToken.type === TokenType.SEMICOLON ||
                             nextToken.type === TokenType.OPEN_BRACE ||
-                            nextToken.type === TokenType.CLOSE_BRACE ||
-                            i === nonWhitespaceTokens.length - 1) {
+                            nextToken.type === TokenType.CLOSE_BRACE) {
                             this.addIssue(WarningCode.PARAMETER_MISSING_TYPE, token.value);
                         }
                     }

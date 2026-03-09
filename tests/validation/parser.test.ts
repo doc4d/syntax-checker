@@ -297,5 +297,58 @@ describe('Parser', () => {
             expect(result[0].parameters[0].spread).toBe(0);
             expect(result[0].returnType?.name).toBe('Collection');
         });
+
+        test('should parse group variadic with optional block', () => {
+            const syntax = '**New object** ( { ...(*property* : Text ; *value* : any)} ) : Object';
+            const result = parser.parseSyntax(syntax);
+
+            expect(result).toHaveLength(1);
+            expect(result[0].parameters).toHaveLength(2);
+            expect(result[0].parameters[0].name).toBe('property');
+            expect(result[0].parameters[0].type).toBe('Text');
+            expect(result[0].parameters[0].spread).toBe(0);
+            expect(result[0].parameters[0].optional).toBe(true);
+            expect(result[0].parameters[1].name).toBe('value');
+            expect(result[0].parameters[1].type).toBe('any');
+            expect(result[0].parameters[1].spread).toBe(1);
+            expect(result[0].parameters[1].optional).toBe(true);
+            expect(result[0].returnType?.type).toBe('Object');
+        });
+
+        test('should parse group variadic with optional inner param', () => {
+            const syntax = '**WP Get attributes** ( *targetObj* : Object ; ...(*attribName* : Text {; *attribValue* : Variable }) ) : Object';
+            const result = parser.parseSyntax(syntax);
+
+            expect(result).toHaveLength(1);
+            expect(result[0].parameters[0].name).toBe('targetObj');
+            expect(result[0].parameters[0].type).toBe('Object');
+            expect(result[0].parameters[0].spread).toBe(-1);
+            expect(result[0].parameters[1].name).toBe('attribName');
+            expect(result[0].parameters[1].type).toBe('Text');
+            expect(result[0].parameters[1].spread).toBe(0);
+            expect(result[0].parameters[2].name).toBe('attribValue');
+            expect(result[0].parameters[2].type).toBe('Variable');
+            expect(result[0].parameters[2].spread).toBe(1);
+            expect(result[0].parameters[2].optional).toBe(true);
+            expect(result[0].returnType?.type).toBe('Object');
+        });
+
+        test('should parse group variadic with > and < types', () => {
+            const syntax = '**LISTBOX SORT COLUMNS** ( *colNum* : Integer ; *order* : >, < {; ...(*colNum* : Integer ; *order* : >, <)} )';
+            const result = parser.parseSyntax(syntax);
+
+            expect(result).toHaveLength(1);
+            expect(result[0].parameters[0].name).toBe('colNum');
+            expect(result[0].parameters[0].type).toBe('Integer');
+            expect(result[0].parameters[1].name).toBe('order');
+            expect(result[0].parameters[1].type).toBe('>, <');
+            expect(result[0].parameters[2].name).toBe('colNum');
+            expect(result[0].parameters[2].spread).toBe(0);
+            expect(result[0].parameters[2].optional).toBe(true);
+            expect(result[0].parameters[3].name).toBe('order');
+            expect(result[0].parameters[3].type).toBe('>, <');
+            expect(result[0].parameters[3].spread).toBe(1);
+            expect(result[0].parameters[3].optional).toBe(true);
+        });
     });
 });

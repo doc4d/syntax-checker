@@ -56,8 +56,7 @@ export class Parser {
             if (!trimmedVariant) continue;
 
             // Use malformation checker to validate syntax structure and extract parameters
-            const tokenizer = new Tokenizer();
-            const syntaxTokens = tokenizer.tokenize(trimmedVariant);
+            const syntaxTokens = this.tokenizer.tokenize(trimmedVariant);
             const syntaxStructure = this.malformationChecker.checkSyntaxStructure(trimmedVariant);
 
             // If structural issues found, add variant with malformation

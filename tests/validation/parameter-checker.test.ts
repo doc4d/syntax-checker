@@ -56,6 +56,29 @@ describe('ParameterChecker', () => {
             expect(result.parameters[0].type).toBe('Type');
             expect(result.parameters[0].spread).toBe(0);
         });
+
+        test('should handle group variadic parameters', () => {
+            const tokens = tokenizer.tokenize('...(a : Text ; b : Integer)');
+            const result = checker.checkParameters(tokens);
+
+            expect(result.parameters).toHaveLength(2);
+            expect(result.parameters[0].name).toBe('a');
+            expect(result.parameters[0].type).toBe('Text');
+            expect(result.parameters[0].spread).toBe(0);
+            expect(result.parameters[1].name).toBe('b');
+            expect(result.parameters[1].type).toBe('Integer');
+            expect(result.parameters[1].spread).toBe(1);
+        });
+
+        test('should handle group variadic with optional inner param', () => {
+            const tokens = tokenizer.tokenize('...(a : Text {; b : Integer})');
+            const result = checker.checkParameters(tokens);
+
+            expect(result.parameters).toHaveLength(2);
+            expect(result.parameters[0].spread).toBe(0);
+            expect(result.parameters[1].spread).toBe(1);
+            expect(result.parameters[1].optional).toBe(true);
+        });
     });
 
     describe('Parameter Without Type', () => {
@@ -178,12 +201,12 @@ describe('ParameterChecker', () => {
         });
 
         test('should treat comparator markers as parameter names', () => {
-            const tokens = tokenizer.tokenize('>_or_< : Comparator');
+            const tokens = tokenizer.tokenize('>_or_< : >, <');
             const result = checker.checkParameters(tokens);
 
             expect(result.parameters).toHaveLength(1);
             expect(result.parameters[0].name).toBe('>_or_<');
-            expect(result.parameters[0].type).toBe('Comparator');
+            expect(result.parameters[0].type).toBe('>, <');
         });
 
         test('should handle complex type names', () => {

@@ -84,7 +84,7 @@ export const WARNING_DEFINITIONS = {
         message: () => 'Parameter has empty type after colon'
     },
     [WarningCode.PARAMETER_MISSING_TYPE]: {
-        level: WarningLevel.LEVEL_2,
+        level: WarningLevel.LEVEL_1,
         message: (paramName: string) => `Parameter '${paramName}' has no type (missing colon and type)`
     }
 } as const;
